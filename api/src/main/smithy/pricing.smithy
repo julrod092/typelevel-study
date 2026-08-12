@@ -10,6 +10,7 @@ use smithy4s.meta#packedInputs
 service PriceAPI {
   version: "1.0.0",
   operations: [GetPrice]
+  errors: [ValidationErrors, NotFoundError, InternalServerError]
 }
 
 @http(method: "POST", uri: "/orders/price", code: 200)
@@ -59,4 +60,38 @@ structure OrderPricedDTO {
   couponApplied: String,
   @required
   createdAt: Timestamp
+}
+
+structure Error {
+  @required
+  field: String,
+  @required
+  message: String
+}
+
+list Errors {
+  member: Error
+}
+
+@error("server")
+@httpError(422)
+structure ValidationErrors {
+  @required
+  code: String,
+  @required
+  errors: Errors
+}
+
+@error("server")
+@httpError(404)
+structure NotFoundError {
+  code: String,
+  message: String
+}
+
+@error("server")
+@httpError(500)
+structure InternalServerError {
+  code: String,
+  message: String
 }

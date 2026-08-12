@@ -1,5 +1,5 @@
 package com.example.domain.repositories
 
-object CouponsRepository {
+trait CouponsRepository {
 
 }

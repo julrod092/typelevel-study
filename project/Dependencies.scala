@@ -17,7 +17,15 @@ object Versions {
 
 object Dependencies {
 
-  val core: Seq[ModuleID] = Seq(
+  val common: Seq[ModuleID] = Seq(
+    "org.typelevel" %% "cats-core" % Versions.cats,
+    "org.typelevel" %% "cats-effect" % Versions.catsEffect,
+    "org.tpolecat" %% "natchez-core" % Versions.natchez,
+    "io.scalaland" %% "chimney" % Versions.chimney,
+    "org.typelevel" %% "weaver-cats" % Versions.weaver % Test
+  )
+
+  val api: Seq[ModuleID] = common ++ Seq(
     "com.disneystreaming.smithy4s" %% "smithy4s-core" % Versions.smithy4s,
     "com.disneystreaming.smithy4s" %% "smithy4s-http4s" % Versions.smithy4s,
     "com.disneystreaming.smithy4s" %% "smithy4s-http4s-swagger" % Versions.smithy4s,
@@ -26,14 +34,11 @@ object Dependencies {
     "org.http4s" %% "http4s-ember-client" % Versions.http4s,
     "org.http4s" %% "http4s-circe" % Versions.http4s,
     "org.http4s" %% "http4s-dsl" % Versions.http4s,
-    "org.typelevel" %% "cats-core" % Versions.cats,
-    "org.typelevel" %% "cats-effect" % Versions.catsEffect,
     "io.circe" %% "circe-core" % Versions.circe,
-    "io.circe" %% "circe-generic" % Versions.circe,
-    "io.scalaland" %% "chimney" % Versions.chimney,
-    "co.fs2" %% "fs2-core" % Versions.fs2,
-    "is.cir" %% "ciris" % Versions.ciris,
-    "org.tpolecat" %% "natchez-core" % Versions.natchez,
-    "org.typelevel" %% "weaver-cats" % Versions.weaver % Test,
+    "io.circe" %% "circe-generic" % Versions.circe
+  )
+
+  val eventHandler: Seq[ModuleID] = common ++ Seq(
+    "co.fs2" %% "fs2-core" % Versions.fs2
   )
 }
