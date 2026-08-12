@@ -31,44 +31,10 @@ object ApiTransformer {
       .withFieldComputed(_.couponCode, value => value.couponCode.map(Coupon.CouponCode(_)))
       .buildTransformer
 
-  given Transformer[LineItem, LineItemRecord] =
-    Transformer
-      .define[LineItem, LineItemRecord]
-      .withFieldComputed(_.sku, _.sku.value)
-      .buildTransformer
-
-  given Transformer[LineItemRecord, LineItem] =
-    Transformer
-      .define[LineItemRecord, LineItem]
-      .withFieldComputed(_.sku, value => LineItem.Sku(value.sku))
-      .buildTransformer
-
   given Transformer[LineItem, LineItemDTO] =
     Transformer
       .define[LineItem, LineItemDTO]
       .withFieldComputed(_.sku, _.sku.value)
-      .buildTransformer
-
-  given Transformer[Order, OrderRecord] =
-    Transformer
-      .define[Order, OrderRecord]
-      .withFieldComputed(_.orderId, _.orderId.value)
-      .withFieldComputed(_.customerId, _.customerId.value)
-      .withFieldComputed(_.status, _.status.toString)
-      .withFieldComputed(_.couponCode, _.couponCode.value)
-      .withFieldComputed(_.createdAt, _.createdAt.toString())
-      .withFieldComputed(_.updatedAt, _.updatedAt.toString())
-      .buildTransformer
-
-  given Transformer[OrderRecord, Order] =
-    Transformer
-      .define[OrderRecord, Order]
-      .withFieldComputed(_.orderId, value => Order.OrderId(value.orderId))
-      .withFieldComputed(_.customerId, value => Customer.CustomerId(value.customerId))
-      .withFieldComputed(_.status, value => OrderStatus.valueOf(value.status))
-      .withFieldComputed(_.couponCode, value => Coupon.CouponCode(value.couponCode))
-      .withFieldComputed(_.createdAt, value => Instant.parse(value.createdAt))
-      .withFieldComputed(_.updatedAt, value => Instant.parse(value.updatedAt))
       .buildTransformer
 
   given Transformer[Order, OrderPricedDTO] =
