@@ -9,18 +9,17 @@ use smithy4s.meta#packedInputs
 @packedInputs
 service PriceAPI {
   version: "1.0.0",
-  operations: [GetPrice]
+  operations: [OrderPricing]
   errors: [ValidationErrors, NotFoundError, InternalServerError]
 }
 
 @http(method: "POST", uri: "/orders/price", code: 200)
-operation GetPrice {
+operation OrderPricing {
   input: OrderPriceDTO,
   output: OrderPricedDTO
 }
 
-
-structure ItemDTO {
+structure LineItemDTO {
   @required
   sku: String,
   @required
@@ -29,15 +28,15 @@ structure ItemDTO {
   lineTotal: BigDecimal
 }
 
-list ItemsDTO {
-  member: ItemDTO
+list LineItemsDTO {
+  member: LineItemDTO
 }
 
 structure OrderPriceDTO {
   @required
   customerId: String,
   @required
-  member: ItemsDTO
+  member: LineItemsDTO
   couponCode: String
 }
 
@@ -49,7 +48,7 @@ structure OrderPricedDTO {
   @required
   status: String,
   @required
-  items: ItemsDTO,
+  items: LineItemsDTO,
   @required
   subtotal: BigDecimal,
   @required
@@ -59,7 +58,7 @@ structure OrderPricedDTO {
   @required
   couponApplied: String,
   @required
-  createdAt: Timestamp
+  createdAt: String
 }
 
 structure Error {

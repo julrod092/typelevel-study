@@ -1,3 +1,3 @@
 package com.example.domain.services
 
-case class OrderPriceService()
+case class ValidationService ()

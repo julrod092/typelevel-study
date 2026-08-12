@@ -3,8 +3,8 @@ package com.example.domain.models
 import java.time.Instant
 
 enum OrderStatus(value: String) {
-  case PRICED extends OrderStatus("PRICED")
-  case MISSING extends OrderStatus("MISSING")
+  case Priced extends OrderStatus("PRICED")
+  case InProgress extends OrderStatus("IN_PROGRESS")
 }
 
 case class LineItem(
@@ -17,13 +17,13 @@ case class LineItem(
 case class Order(
     orderId: Order.OrderId,
     customerId: Customer.CustomerId,
-    status: OrderStatus,
+    status: Option[OrderStatus],
     items: List[LineItem],
     subTotal: BigDecimal,
     discountAmount: BigDecimal,
     total: BigDecimal,
-    createdAt: Instant,
-    updatedAt: Instant
+    createdAt: Option[Instant],
+    updatedAt: Option[Instant]
 )
 
 object Order {

@@ -1,9 +1,9 @@
-package com.example.domain.transformers
+package com.example.infrastructure.transformers
 
 import com.example.domain.models.{Customer, LineItem, Order, OrderStatus}
 import com.example.domain.repositories.{LineItemRecord, OrderRecord}
 import io.scalaland.chimney.Transformer
-import io.scalaland.chimney.dsl.transformInto
+import io.scalaland.chimney.dsl.*
 
 import java.time.Instant
 

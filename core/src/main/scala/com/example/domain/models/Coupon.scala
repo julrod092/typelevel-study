@@ -14,4 +14,11 @@ case class Coupon(
 
 object Coupon {
   opaque type CouponCode = String
+
+  object CouponCode {
+    def apply(value: String): CouponCode = value
+  }
+  extension (input: CouponCode) {
+    def value: String = input
+  }
 }
