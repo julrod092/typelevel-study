@@ -1,6 +1,10 @@
 package com.example.domain.models
 
-enum PrincingError(labelId: String) {
+enum PrincingError(errorId: String) {
+  case EmptyCustomerId(message: String) extends PrincingError("EMPTY_CUSTOMER_ID")
+  case EmptyItemSku(message: String) extends PrincingError("EMPTY_ITEM_SKU")
+  case EmptyLineItemList(message: String) extends PrincingError("EMPTY_ITEM_LIST")
+  case EmptyCouponCode(message: String) extends PrincingError("EMPTY_COUPON_CODE")
   case UnkownSku(message: String, sku: LineItem.Sku) extends PrincingError("UNKNOW_SKU")
   case InvalidItemQuantity(message: String, sku: LineItem.Sku)
       extends PrincingError("INVALID_ITEM_QUANITY")
