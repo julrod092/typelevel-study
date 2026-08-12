@@ -1,16 +1,11 @@
 package com.example.domain.services
 
-import com.example.domain.models.CustomerOrder
-import com.example.domain.models.Coupon
+import com.example.domain.models.{Coupon, Customer, CustomerLineItem, CustomerOrder, DomainError, LineItem, Order, OrderStatus}
 import cats.data.ValidatedNec
-import com.example.domain.models.DomainError
-import com.example.domain.models.Order
 import cats.syntax.all.*
 import cats.instances.all.*
-import com.example.domain.models.LineItem
+
 import java.util.UUID
-import com.example.domain.models.CustomerLineItem
-import com.example.domain.models.OrderStatus
 import java.time.Instant
 import cats.instances.tuple
 
@@ -39,6 +34,7 @@ object OrderPriceService {
 
   private def validateCoupon(
       coupon: Coupon,
+      customer: Customer,
       subTotal: BigDecimal
   ): ValidatedNec[DomainError, Coupon] = {
     val validateExpiration: ValidatedNec[DomainError, Instant] =
@@ -50,7 +46,7 @@ object OrderPriceService {
       else DomainError.CouponLimitReached("Coupon uses passed its limit", coupon.code).invalidNec
 
     val isStackableWithTier: ValidatedNec[DomainError, Boolean] =
-      if (coupon.stackableWithTiers) coupon.stackableWithTiers.validNec
+      if (coupon.stackableWithTiers && customer.tier.isApplicable) coupon.stackableWithTiers.validNec
       else
         DomainError
           .CouponNotStackable("Coupon not apply for customer tier", coupon.code)
@@ -87,6 +83,7 @@ object OrderPriceService {
 
   def createOrder(
       customerOrder: CustomerOrder,
+      customer: Customer,
       coupon: Option[Coupon]
   ): ValidatedNec[DomainError, Order] = {
 
@@ -95,7 +92,7 @@ object OrderPriceService {
       .andThen { items =>
         val subtotal: BigDecimal = items.map(_.lineTotal).sum
         val validatedCoupon: Option[Coupon] =
-          coupon.flatMap(value => validateCoupon(value, subtotal).toOption)
+          coupon.flatMap(value => validateCoupon(value, customer, subtotal).toOption)
         val discountAmount: BigDecimal =
           validatedCoupon.map(value => subtotal * (value.discountPercent / 100)).getOrElse(0)
         Order(

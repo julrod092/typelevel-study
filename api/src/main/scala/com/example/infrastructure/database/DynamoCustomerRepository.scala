@@ -12,24 +12,30 @@ final case class DynamoCustomerRepository[F[_]: Async](client: DynamoDB[F])
 
   private val tableName = TableArn("Customer")
 
-  private def decodeResponse(response: Map[AttributeName, AttributeValue]): Option[CustomerRecord] = {
+  private def decodeResponse(
+      response: Map[AttributeName, AttributeValue]
+  ): Option[CustomerRecord] = {
     for {
-      customerId <- response.get(AttributeName("customerId")).flatmap(_.s).map(_.value)
-      tier <- response.get(AttributeName("tier")).flatMap(_.s).map(_.value)
+      customerId <- response.get(AttributeName("customerId")).flatMap(_.project.s).map(_.value)
+      tier <- response.get(AttributeName("tier")).flatMap(_.project.s).map(_.value)
+      name <- response.get(AttributeName("name")).map(_.project.s)
+      createdAt <- response.get(AttributeName("createdAt")).flatMap(_.project.s).map(_.value)
     } yield CustomerRecord(
       customerId = customerId,
       tier = tier,
-      name = response.
+      name = name.map(_.value),
+      createdAt = createdAt
     )
   }
 
-
   override def customerByCustomerId(customerId: CustomerId): F[Option[CustomerRecord]] = {
-    val key = Map(AttributeName("customerId") -> AttributeValue.s(StringAttributeValue(customerId.value)))
+    val key = Map(
+      AttributeName("customerId") -> AttributeValue.s(StringAttributeValue(customerId.value))
+    )
 
     client
       .getItem(tableName, key)
       .attempt
-      .map(_.toOption.flatMap(_.item.map(decodeResponse)))
+      .map(_.toOption.flatMap(_.item.flatMap(decodeResponse)))
   }
 }

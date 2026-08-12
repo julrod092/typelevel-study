@@ -4,7 +4,7 @@ import cats.effect.{Async, Resource}
 import com.amazonaws.dynamodb.DynamoDB
 import com.comcast.ip4s.*
 import com.example.domain.repositories.{CouponsRepository, CustomersRepository, OrdersRepository}
-import com.example.infrastructure.database.DynamoOrderRepository
+import com.example.infrastructure.database.{DynamoCouponRepository, DynamoCustomerRepository, DynamoOrderRepository}
 import com.example.infrastructure.routes.Routes
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.ember.server.EmberServerBuilder
@@ -25,8 +25,8 @@ object Configuration {
       client <- EmberClientBuilder.default[F].withoutCheckEndpointAuthentication.build
       dynamoClient <- AwsClient(DynamoDB.service, AwsEnvironment.make[F](null, null, null, null))
     } yield PricingEnvironment(
-      customers = null,
-      coupons = null,
+      customers = DynamoCustomerRepository[F](dynamoClient),
+      coupons = DynamoCouponRepository[F](dynamoClient),
       orders = DynamoOrderRepository[F](dynamoClient)
     )
 

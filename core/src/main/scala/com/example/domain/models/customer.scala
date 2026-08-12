@@ -6,6 +6,9 @@ import java.time.Instant
 
 enum CustomerTier {
   case BASIC, SILVER, GOLD
+
+  def isApplicable: Boolean =
+    this == SILVER || this == GOLD
 }
 
 case class Customer(
