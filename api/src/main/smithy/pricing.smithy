@@ -62,22 +62,42 @@ structure OrderPricedDTO {
   updatedAt: String
 }
 
-structure Error {
+union DomainError {
+ generalError: GeneralValidationError,
+ itemError: ItemValidationError,
+ couponError: CouponValidationError
+}
+
+structure GeneralValidationError {
   @required
-  field: String,
+  errorCode: String,
   @required
-  message: String
+ message: String
+}
+
+structure ItemValidationError {
+  @required
+  errorCode: String,
+  @required
+  message: String,
+  sku: String
+}
+
+structure CouponValidationError {
+  @required
+  errorCode: String,
+  @required
+  message: String,
+  code: String
 }
 
 list Errors {
-  member: Error
+  member: DomainError
 }
 
 @error("server")
 @httpError(422)
 structure ValidationErrors {
-  @required
-  code: String,
   @required
   errors: Errors
 }

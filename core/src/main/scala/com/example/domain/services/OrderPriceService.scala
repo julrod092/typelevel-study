@@ -28,7 +28,7 @@ object OrderPriceService {
   ): ValidatedNec[PrincingError, LineItem] =
     lineItemsValueCache
       .get(lineItem.sku)
-      .fold(PrincingError.UnkownSku("Item sku not found", lineItem.sku).invalidNec) { valueAmount =>
+      .fold(PrincingError.UnknownSku("Item sku not found", lineItem.sku).invalidNec) { valueAmount =>
         LineItem(
           sku = lineItem.sku,
           quantity = lineItem.quantity,
@@ -71,7 +71,7 @@ object OrderPriceService {
         coupon.discountPercent.validNec
       else
         PrincingError
-          .CoupontInvalidDiscountPercentage(
+          .CouponInvalidDiscountPercentage(
             "Coupon discount percentage is an invalid value",
             coupon.code
           )
