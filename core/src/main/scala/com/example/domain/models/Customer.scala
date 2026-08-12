@@ -15,6 +15,17 @@ case class Customer(
     createdAt: Instant
 )
 
+case class CustomerLineItem(
+    sku: LineItem.Sku,
+    quantity: Int
+)
+
+case class CustomerOrder(
+    customerId: Customer.CustomerId,
+    items: List[CustomerLineItem],
+    couponCode: Option[Coupon.CouponCode]
+)
+
 object Customer {
   opaque type CustomerId = String
 

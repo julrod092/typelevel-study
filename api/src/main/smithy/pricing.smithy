@@ -36,7 +36,7 @@ structure OrderPriceDTO {
   @required
   customerId: String,
   @required
-  member: LineItemsDTO
+  items: LineItemsDTO
   couponCode: String
 }
 
