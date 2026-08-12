@@ -29,9 +29,10 @@ case class OrderRecord(
     customerId: String,
     status: String,
     items: List[LineItemRecord],
-    subTotal: BigDecimal,
+    subtotal: BigDecimal,
     discountAmount: BigDecimal,
     total: BigDecimal,
+    couponCode: String,
     createdAt: String,
     updatedAt: String
 )

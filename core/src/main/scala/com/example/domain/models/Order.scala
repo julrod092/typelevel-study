@@ -17,13 +17,14 @@ case class LineItem(
 case class Order(
     orderId: Order.OrderId,
     customerId: Customer.CustomerId,
-    status: Option[OrderStatus],
+    status: OrderStatus,
     items: List[LineItem],
-    subTotal: BigDecimal,
+    subtotal: BigDecimal,
     discountAmount: BigDecimal,
     total: BigDecimal,
-    createdAt: Option[Instant],
-    updatedAt: Option[Instant]
+    couponCode: Coupon.CouponCode,
+    createdAt: Instant,
+    updatedAt: Instant
 )
 
 object Order {
