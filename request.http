@@ -1,0 +1,12 @@
+# TypeLevel Requests
+
+POST http://localhost:8080/orders/price
+
+{
+  "customerId": "",
+  "items": [{
+    "sku": "",
+    "quantity": -1
+  }],
+  "couponCode": ""
+}
