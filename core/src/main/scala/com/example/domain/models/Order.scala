@@ -2,8 +2,9 @@ package com.example.domain.models
 
 import java.time.Instant
 
-enum OrderStatus {
-  case PRICED, MISSING
+enum OrderStatus(value: String) {
+  case PRICED extends OrderStatus("PRICED")
+  case MISSING extends OrderStatus("MISSING")
 }
 
 case class LineItem(

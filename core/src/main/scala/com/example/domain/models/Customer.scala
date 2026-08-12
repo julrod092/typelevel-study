@@ -1,5 +1,7 @@
 package com.example.domain.models
 
+import com.example.domain.models.Order.OrderId
+
 import java.time.Instant
 
 enum CustomerTier {
@@ -15,4 +17,12 @@ case class Customer(
 
 object Customer {
   opaque type CustomerId = String
+
+  object CustomerId {
+    def apply(value: String): CustomerId = value
+  }
+
+  extension (input: CustomerId) {
+    def value: String = input
+  }
 }
