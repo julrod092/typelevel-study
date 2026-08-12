@@ -62,7 +62,7 @@ structure OrderPricedDTO {
   updatedAt: String
 }
 
-union DomainError {
+union ValidationError {
  generalError: GeneralValidationError,
  itemError: ItemValidationError,
  couponError: CouponValidationError
@@ -92,7 +92,7 @@ structure CouponValidationError {
 }
 
 list Errors {
-  member: DomainError
+  member: ValidationError
 }
 
 @error("server")

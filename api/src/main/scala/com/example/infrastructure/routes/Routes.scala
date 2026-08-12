@@ -4,6 +4,7 @@ import cats.data.EitherT
 import cats.effect.{Async, Resource, Sync}
 import cats.syntax.all.*
 import cats.syntax.semigroupk.*
+import com.example.infrastructure.configuration.PricingEnvironment
 import org.http4s.HttpRoutes
 import pricing.PriceAPI
 import pricing.PriceAPIOperation.OrderPricingError
@@ -25,8 +26,8 @@ object Routes {
   private def docsRoute[F[_]: Sync]: HttpRoutes[F] =
     smithy4s.http4s.swagger.docs[F](PriceAPI)
 
-  def impl[F[_]: Async]: Resource[F, HttpRoutes[F]] =
+  def impl[F[_]: Async](env: PricingEnvironment[F]): Resource[F, HttpRoutes[F]] =
     for {
-      pricingRoutes <- SimpleRestJsonBuilder.routes(PriceRoutes.impl[F]).resource
+      pricingRoutes <- SimpleRestJsonBuilder.routes(PriceRoutes.impl[F](env)).resource
     } yield pricingRoutes <+> docsRoute[F]
 }

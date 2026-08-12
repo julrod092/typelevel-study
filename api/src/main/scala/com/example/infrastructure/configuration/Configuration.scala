@@ -1,12 +1,18 @@
-package com.example.infrastructure
+package com.example.infrastructure.configuration
 
-import org.http4s.implicits.*
-import cats.syntax.all.*
 import cats.effect.Async
 import com.comcast.ip4s.*
+import com.example.domain.repositories.{CouponsRepository, CustomersRepository, OrdersRepository}
 import com.example.infrastructure.routes.Routes
-import org.http4s.server.middleware.Logger
 import org.http4s.ember.server.EmberServerBuilder
+import org.http4s.implicits.*
+import org.http4s.server.middleware.Logger
+
+final case class PricingEnvironment[F[_]](
+    customers: CustomersRepository[F],
+    coupons: CouponsRepository[F],
+    orders: OrdersRepository[F]
+)
 
 object Configuration {
 

@@ -3,7 +3,7 @@ package com.example.domain.services
 import com.example.domain.models.CustomerOrder
 import com.example.domain.models.Coupon
 import cats.data.ValidatedNec
-import com.example.domain.models.PricingError
+import com.example.domain.models.DomainError
 import com.example.domain.models.Order
 import cats.syntax.all.*
 import cats.instances.all.*
@@ -25,10 +25,10 @@ object OrderPriceService {
 
   private def priceLineItem(
       lineItem: CustomerLineItem
-  ): ValidatedNec[PricingError, LineItem] =
+  ): ValidatedNec[DomainError, LineItem] =
     lineItemsValueCache
       .get(lineItem.sku)
-      .fold(PricingError.UnknownSku("Item sku not found", lineItem.sku).invalidNec) { valueAmount =>
+      .fold(DomainError.UnknownSku("Item sku not found", lineItem.sku).invalidNec) { valueAmount =>
         LineItem(
           sku = lineItem.sku,
           quantity = lineItem.quantity,
@@ -40,37 +40,37 @@ object OrderPriceService {
   private def validateCoupon(
       coupon: Coupon,
       subTotal: BigDecimal
-  ): ValidatedNec[PricingError, Coupon] = {
-    val validateExpiration: ValidatedNec[PricingError, Instant] =
+  ): ValidatedNec[DomainError, Coupon] = {
+    val validateExpiration: ValidatedNec[DomainError, Instant] =
       if (coupon.expiresAt.isAfter(Instant.now())) coupon.expiresAt.validNec
-      else PricingError.CouponExpirationError("Coupon Expired", coupon.code).invalidNec
+      else DomainError.CouponExpirationError("Coupon Expired", coupon.code).invalidNec
 
-    val validateUsage: ValidatedNec[PricingError, Boolean] =
+    val validateUsage: ValidatedNec[DomainError, Boolean] =
       if (coupon.usageCount <= coupon.usageLimit) true.validNec
-      else PricingError.CouponLimitReached("Coupon uses passed its limit", coupon.code).invalidNec
+      else DomainError.CouponLimitReached("Coupon uses passed its limit", coupon.code).invalidNec
 
-    val isStackableWithTier: ValidatedNec[PricingError, Boolean] =
+    val isStackableWithTier: ValidatedNec[DomainError, Boolean] =
       if (coupon.stackableWithTiers) coupon.stackableWithTiers.validNec
       else
-        PricingError
+        DomainError
           .CouponNotStackable("Coupon not apply for customer tier", coupon.code)
           .invalidNec
 
-    val isMinAmount: ValidatedNec[PricingError, Boolean] =
+    val isMinAmount: ValidatedNec[DomainError, Boolean] =
       if (subTotal >= coupon.minOrderAmount) true.validNec
       else
-        PricingError
+        DomainError
           .CouponUnderExpectedAmount(
             "Order does not meet expected amount for discount",
             coupon.code
           )
           .invalidNec
 
-    val isValidDiscountPercent: ValidatedNec[PricingError, Int] =
+    val isValidDiscountPercent: ValidatedNec[DomainError, Int] =
       if (coupon.discountPercent > 0 && coupon.discountPercent < 100)
         coupon.discountPercent.validNec
       else
-        PricingError
+        DomainError
           .CouponInvalidDiscountPercentage(
             "Coupon discount percentage is an invalid value",
             coupon.code
@@ -88,7 +88,7 @@ object OrderPriceService {
   def createOrder(
       customerOrder: CustomerOrder,
       coupon: Option[Coupon]
-  ): ValidatedNec[PricingError, Order] = {
+  ): ValidatedNec[DomainError, Order] = {
 
     customerOrder.items
       .traverse(priceLineItem)

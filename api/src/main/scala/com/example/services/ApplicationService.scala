@@ -1,93 +1,57 @@
 package com.example.services
 
-import pricing.*
-import pricing.DomainError
-import io.scalaland.chimney.dsl.*
-import com.example.infrastructure.transformers.ApiTransformer.*
+import cats.Monad
+import cats.data.{EitherT, Kleisli, ValidatedNec}
+import cats.syntax.all.*
+import com.example.domain.models.{Coupon, Customer, CustomerOrder, DomainError, Order}
+import com.example.domain.repositories.{CouponRecord, CustomerRecord}
+import com.example.domain.services.{OrderPriceService, ValidationService}
+import com.example.infrastructure.errors.ErrorHandler
 import com.example.infrastructure.transformers.ApiTransformer.given
-import com.example.domain.models.CustomerOrder
-import cats.data.EitherT
-import com.example.domain.services.ValidationService
-import cats.instances.all._
-import cats.syntax.all._
-import com.example.domain.services.OrderPriceService
-import cats.effect.Async
-import com.example.domain.models.PricingError
-import cats.data.NonEmptyChain
-import com.example.domain.models.PricingError.*
+import io.scalaland.chimney.dsl.*
+import pricing.*
 import pricing.PriceAPIOperation.OrderPricingError
-import com.example.domain.models.{Coupon, LineItem}
-import io.scalaland.chimney.Transformer
 
-object ApplicationService {
+object ApplicationService extends BaseService {
 
-  private def domainErrorHandler(
-      errors: NonEmptyChain[PricingError] | PricingError
-  ): OrderPricingError = {
-    errors match {
-      case validationErrors: NonEmptyChain[_] =>
-        val tranformer: List[DomainError] = validationErrors.foldLeft(List.empty) { (acc, tar) =>
-          val tranformToAppError = tar match {
-            case error: EmptyCustomerId =>
-              DomainError.generalError(GeneralValidationError(error.errorCode, error.message))
-            case error: EmptyLineItemList =>
-              DomainError.generalError(GeneralValidationError(error.errorCode, error.message))
-            case error: EmptyItemSku =>
-              DomainError.generalError(GeneralValidationError(error.errorCode, error.message))
-            case error: EmptyCouponCode =>
-              DomainError.generalError(GeneralValidationError(error.errorCode, error.message))
-            case error: UnknownSku =>
-              DomainError.itemError(
-                ItemValidationError(error.errorCode, error.message, error.sku.value.some)
-              )
-            case error: InvalidItemQuantity =>
-              DomainError.itemError(
-                ItemValidationError(error.errorCode, error.message, error.sku.value.some)
-              )
-            case error: CouponLimitReached =>
-              DomainError.couponError(
-                CouponValidationError(error.errorCode, error.message, error.code.value.some)
-              )
-            case error: CouponNotStackable =>
-              DomainError.couponError(
-                CouponValidationError(error.errorCode, error.message, error.code.value.some)
-              )
-            case error: CouponExpirationError =>
-              DomainError.couponError(
-                CouponValidationError(error.errorCode, error.message, error.code.value.some)
-              )
-            case error: CouponUnderExpectedAmount =>
-              DomainError.couponError(
-                CouponValidationError(error.errorCode, error.message, error.code.value.some)
-              )
-          }
-          acc ++ List(tranformToAppError)
-        }
-        OrderPricingError.validationErrors(ValidationErrors(tranformer))
-
-      case err: CustomerNotFound =>
-        OrderPricingError.notFoundError(NotFoundError(err.errorCode.some, err.message.some))
-      case err: CouponNotFound =>
-        OrderPricingError.notFoundError(NotFoundError(err.errorCode.some, err.message.some))
-      case err: OrderNotSaved =>
-        OrderPricingError.notFoundError(NotFoundError(err.errorCode.some, err.message.some))
-      case err: OrderNotFound =>
-        OrderPricingError.notFoundError(NotFoundError(err.errorCode.some, err.message.some))
+  private def executeDB[F[_]: Monad, T, X](value: String)(f: String => F[T]): Response[F, X] =
+    f(value).map2 {
+      case Some(record) => EitherT.rightT[F, OrderPricingError](record.transformInto[X])
+      case None         =>
+        EitherT.leftT[F, T](
+          OrderPricingError.notFoundError(
+            NotFoundError("NOT_FOUND".some, s"Can not find value $value".some)
+          )
+        )
     }
-  }
 
-  def createOrder[F[_]: Async](
+  private def executeValidation[F[_]: Monad](value: CustomerOrder)(
+      f: CustomerOrder => ValidatedNec[DomainError, CustomerOrder]
+  ): Response[F, CustomerOrder] =
+    EitherT.fromEither[F](f(value).toEither.leftMap(ErrorHandler.handleDomainErrors))
+
+  private def executePricing[F[_]: Monad](order: CustomerOrder, coupon: Option[Coupon])(
+      f: (CustomerOrder, Option[Coupon]) => ValidatedNec[DomainError, Order]
+  ): Response[F, Order] =
+    EitherT.fromEither[F](f(order, coupon).toEither.leftMap(ErrorHandler.handleDomainErrors))
+
+  def createOrder[F[_]: Monad](
       dto: OrderPriceDTO
-  ): EitherT[F, OrderPricingError, OrderPricedDTO] = {
-    val toDomain: CustomerOrder = dto.transformInto[CustomerOrder]
-    (for {
-      validatedCustomerOrder <- EitherT.fromEither[F](
-        ValidationService.validate(toDomain).toEither
+  ): Environment[F, OrderPricedDTO] = Kleisli { env =>
+    val domainObj = dto.transformInto[CustomerOrder]
+    for {
+      validation <- executeValidation(domainObj)(ValidationService.validate)
+      customer <- executeDB[F, Option[CustomerRecord], Customer](domainObj.customerId.value)(
+        env.customers.customerByCustomerId
       )
-      orderCreation <- EitherT.fromEither[F](
-        OrderPriceService.createOrder(validatedCustomerOrder, None).toEither
+      coupon <- domainObj.couponCode.fold[Response[F, Option[Coupon]]](
+        EitherT.rightT[F, OrderPricingError](None)
+      )(value =>
+        executeDB[F, Option[CouponRecord], Option[Coupon]](value.value)(
+          env.coupons.couponByCouponCode
+        )
       )
-    } yield orderCreation.transformInto[OrderPricedDTO])
-      .leftMap(domainErrorHandler)
+      result <- executePricing(validation, coupon)(OrderPriceService.createOrder)
+    } yield null.transformInto[OrderPricedDTO]
   }
 }
