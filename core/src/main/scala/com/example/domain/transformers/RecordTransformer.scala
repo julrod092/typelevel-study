@@ -37,7 +37,7 @@ object RecordTransformer {
       .define[Order, OrderRecord]
       .withFieldComputed(_.orderId, _.orderId.value)
       .withFieldComputed(_.customerId, _.customerId.value)
-      .withFieldComputed(_.status, _.status.)
+      .withFieldComputed(_.status, value => value.status.toString)
       .withFieldComputed(_.items, value => value.items.map(_.transformInto[LineItemRecord]))
       .withFieldComputed(_.createdAt, _.toString)
       .withFieldComputed(_.updatedAt, _.toString)
