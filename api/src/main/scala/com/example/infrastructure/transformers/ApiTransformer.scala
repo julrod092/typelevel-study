@@ -44,7 +44,8 @@ object ApiTransformer {
       .withFieldComputed(_.customerId, _.customerId.value)
       .withFieldComputed(_.status, _.status.toString)
       .withFieldComputed(_.createdAt, _.createdAt.toString())
-      .withFieldComputed(_.couponApplied, _.couponCode.value)
+      .withFieldComputed(_.updatedAt, _.updatedAt.toString())
+      .withFieldComputed(_.couponApplied, _.couponCode.map(_.value))
       .buildTransformer
 
 }

@@ -32,7 +32,7 @@ case class OrderRecord(
     subtotal: BigDecimal,
     discountAmount: BigDecimal,
     total: BigDecimal,
-    couponCode: String,
+    couponCode: Option[String],
     createdAt: String,
     updatedAt: String
 )

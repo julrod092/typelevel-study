@@ -22,7 +22,7 @@ case class Order(
     subtotal: BigDecimal,
     discountAmount: BigDecimal,
     total: BigDecimal,
-    couponCode: Coupon.CouponCode,
+    couponCode: Option[Coupon.CouponCode],
     createdAt: Instant,
     updatedAt: Instant
 )

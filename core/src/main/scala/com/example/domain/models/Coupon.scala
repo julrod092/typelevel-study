@@ -4,7 +4,7 @@ import java.time.Instant
 
 case class Coupon(
     code: Coupon.CouponCode,
-    discountAmount: BigDecimal,
+    discountPercent: Int,
     minOrderAmount: BigDecimal,
     usageLimit: Int,
     usageCount: Int,

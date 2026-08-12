@@ -29,7 +29,7 @@ object RecordTransformer {
       .withFieldComputed(_.customerId, value => Customer.CustomerId(value.customerId))
       .withFieldComputed(_.status, value => OrderStatus.valueOf(value.status))
       .withFieldComputed(_.items, value => value.items.map(_.transformInto[LineItem]))
-      .withFieldComputed(_.couponCode, value => Coupon.CouponCode(value.couponCode))
+      .withFieldComputed(_.couponCode, _.couponCode.map(value => Coupon.CouponCode(value)))
       .withFieldComputed(_.createdAt, value => Instant.parse(value.createdAt))
       .withFieldComputed(_.updatedAt, value => Instant.parse(value.updatedAt))
       .buildTransformer
@@ -41,7 +41,7 @@ object RecordTransformer {
       .withFieldComputed(_.customerId, _.customerId.value)
       .withFieldComputed(_.status, value => value.status.toString)
       .withFieldComputed(_.items, value => value.items.map(_.transformInto[LineItemRecord]))
-      .withFieldComputed(_.couponCode, _.couponCode.value)
+      .withFieldComputed(_.couponCode, _.couponCode.map(_.value))
       .withFieldComputed(_.createdAt, _.toString)
       .withFieldComputed(_.updatedAt, _.toString)
       .buildTransformer

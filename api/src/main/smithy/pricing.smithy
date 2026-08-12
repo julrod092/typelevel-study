@@ -55,10 +55,11 @@ structure OrderPricedDTO {
   discountAmount: BigDecimal,
   @required
   total: BigDecimal,
-  @required
   couponApplied: String,
   @required
-  createdAt: String
+  createdAt: String,
+  @required
+  updatedAt: String
 }
 
 structure Error {

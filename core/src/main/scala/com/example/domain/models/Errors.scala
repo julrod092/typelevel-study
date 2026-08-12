@@ -12,6 +12,12 @@ enum PrincingError(errorId: String) {
       extends PrincingError("COUPON_LIMIT_REACHED")
   case CouponNotStackable(message: String, code: Coupon.CouponCode)
       extends PrincingError("COUPON_NOT_STACKABLE")
+  case CouponExpirationError(message: String, code: Coupon.CouponCode)
+      extends PrincingError("COUPON_EXPIRED")
+  case CouponUnderExpectedAmount(message: String, code: Coupon.CouponCode)
+      extends PrincingError("COUPON_UNDER_EXPECTED_AMOUNT")
+  case CoupontInvalidDiscountPercentage(message: String, code: Coupon.CouponCode)
+      extends PrincingError("INVALID_DISCOUNT_PERCENTAGE")
   case InvalidOrderAmountAggregation(message: String, orderId: Order.OrderId)
       extends PrincingError("INVALID_ORDER_AMOUNT_AGGREGATION")
 }
