@@ -1,12 +1,16 @@
 package com.example.infrastructure.configuration
 
-import cats.effect.Async
+import cats.effect.{Async, Resource}
+import com.amazonaws.dynamodb.DynamoDB
 import com.comcast.ip4s.*
 import com.example.domain.repositories.{CouponsRepository, CustomersRepository, OrdersRepository}
+import com.example.infrastructure.database.DynamoOrderRepository
 import com.example.infrastructure.routes.Routes
+import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits.*
 import org.http4s.server.middleware.Logger
+import smithy4s.aws.{AwsClient, AwsEnvironment, AwsRegion}
 
 final case class PricingEnvironment[F[_]](
     customers: CustomersRepository[F],
@@ -16,9 +20,20 @@ final case class PricingEnvironment[F[_]](
 
 object Configuration {
 
+  def createEnv[F[_]: Async]: Resource[F, PricingEnvironment[F]] =
+    for {
+      client <- EmberClientBuilder.default[F].withoutCheckEndpointAuthentication.build
+      dynamoClient <- AwsClient(DynamoDB.service, AwsEnvironment.make[F](null, null, null, null))
+    } yield PricingEnvironment(
+      customers = null,
+      coupons = null,
+      orders = DynamoOrderRepository[F](dynamoClient)
+    )
+
   def run[F[_]: Async]: F[Nothing] = {
     for {
-      routes <- Routes.impl[F]
+      env <- createEnv[F]
+      routes <- Routes.impl[F](env)
       finalHttpApp = Logger.httpApp(logHeaders = true, logBody = true)(routes.orNotFound)
       _ <- EmberServerBuilder
         .default[F]

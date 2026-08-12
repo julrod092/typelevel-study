@@ -99,7 +99,7 @@ object OrderPriceService {
         val discountAmount: BigDecimal =
           validatedCoupon.map(value => subtotal * (value.discountPercent / 100)).getOrElse(0)
         Order(
-          orderId = Order.OrderId(UUID.randomUUID().toString()),
+          orderId = Order.OrderId(UUID.randomUUID().toString),
           customerId = customerOrder.customerId,
           status = OrderStatus.InProgress,
           items = items,
