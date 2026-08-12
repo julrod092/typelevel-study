@@ -2,7 +2,7 @@ package com.example.domain.services
 
 import cats.data.EitherT
 import com.example.domain.models.CustomerOrder
-import com.example.domain.models.PrincingError
+import com.example.domain.models.PricingError
 import com.example.domain.models.Order
 import cats.effect.Async
 import cats.data.ValidatedNec
@@ -17,21 +17,21 @@ object ValidationService {
 
   private def validateCustomerId(
       customerId: Customer.CustomerId
-  ): ValidatedNec[PrincingError, Customer.CustomerId] = {
+  ): ValidatedNec[PricingError, Customer.CustomerId] = {
     if (customerId.value.nonEmpty) customerId.validNec
-    else PrincingError.EmptyCustomerId("Empty Customer ID").invalidNec
+    else PricingError.EmptyCustomerId("Empty Customer ID").invalidNec
   }
 
   private def validateLineItem(
       lineItem: CustomerLineItem
-  ): ValidatedNec[PrincingError, CustomerLineItem] = {
+  ): ValidatedNec[PricingError, CustomerLineItem] = {
 
-    val validateSku: ValidatedNec[PrincingError, LineItem.Sku] =
+    val validateSku: ValidatedNec[PricingError, LineItem.Sku] =
       if (lineItem.sku.value.nonEmpty) lineItem.sku.validNec
-      else PrincingError.EmptyItemSku("Empty item sku").invalidNec
-    val validateQuantity: ValidatedNec[PrincingError, Int] =
+      else PricingError.EmptyItemSku("Empty item sku").invalidNec
+    val validateQuantity: ValidatedNec[PricingError, Int] =
       if (lineItem.quantity > 0) lineItem.quantity.validNec
-      else PrincingError.InvalidItemQuantity("Item quantity is negative", lineItem.sku).invalidNec
+      else PricingError.InvalidItemQuantity("Item quantity is negative", lineItem.sku).invalidNec
 
     (
       validateSku,
@@ -41,20 +41,20 @@ object ValidationService {
 
   private def validateLineItems(
       lineItems: List[CustomerLineItem]
-  ): ValidatedNec[PrincingError, List[CustomerLineItem]] = {
+  ): ValidatedNec[PricingError, List[CustomerLineItem]] = {
     if (lineItems.nonEmpty) lineItems.traverse(validateLineItem)
-    else PrincingError.EmptyLineItemList("List of items is empty").invalidNec
+    else PricingError.EmptyLineItemList("List of items is empty").invalidNec
   }
 
   private def validateCouponCode(
       couponCode: Option[Coupon.CouponCode]
-  ): ValidatedNec[PrincingError, Option[Coupon.CouponCode]] =
+  ): ValidatedNec[PricingError, Option[Coupon.CouponCode]] =
     couponCode.fold(couponCode.validNec) { code =>
       if (code.value.nonEmpty) Some(code).validNec
-      else PrincingError.EmptyCouponCode("Coupon code set but empty").invalidNec
+      else PricingError.EmptyCouponCode("Coupon code set but empty").invalidNec
     }
 
-  def validate(customerOrder: CustomerOrder): ValidatedNec[PrincingError, CustomerOrder] =
+  def validate(customerOrder: CustomerOrder): ValidatedNec[PricingError, CustomerOrder] =
     (
       validateCustomerId(customerOrder.customerId),
       validateLineItems(customerOrder.items),

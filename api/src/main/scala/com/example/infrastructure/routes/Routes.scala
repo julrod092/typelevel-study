@@ -13,12 +13,10 @@ trait Routes {
 
   type Result[F[_], T] = EitherT[F, OrderPricingError, T]
 
-  def handleResult[F[_] : Async, T](result: Result[F, T]): F[T] =
+  def handleResult[F[_]: Async, T](result: Result[F, T]): F[T] =
     result.value.flatMap {
       case Right(res) => Async[F].pure(res)
-      case Left(error) => Async[F].raiseError {
-        OrderPricingError.unliftError(error)
-      }
+      case Left(error) => Async[F].raiseError(OrderPricingError.unliftError(error))
     }
 }
 

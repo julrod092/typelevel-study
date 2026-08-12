@@ -15,8 +15,6 @@ import com.example.domain.models.Coupon
 import com.example.domain.repositories.OrderRecord
 import com.example.domain.repositories.LineItemRecord
 import java.time.Instant
-import com.example.domain.models.PrincingError
-import pricing.GeneralValidationError
 
 object ApiTransformer {
 
@@ -48,12 +46,6 @@ object ApiTransformer {
       .withFieldComputed(_.createdAt, _.createdAt.toString())
       .withFieldComputed(_.updatedAt, _.updatedAt.toString())
       .withFieldComputed(_.couponApplied, _.couponCode.map(_.value))
-      .buildTransformer
-
-  given Transformer[PrincingError.EmptyCustomerId, GeneralValidationError] =
-    Transformer
-      .define[PrincingError.EmptyCustomerId, GeneralValidationError]
-      .withFieldComputed(_.errorCode, _.errorId)
       .buildTransformer
 
 }

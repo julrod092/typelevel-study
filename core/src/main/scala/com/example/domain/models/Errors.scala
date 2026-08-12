@@ -1,23 +1,29 @@
 package com.example.domain.models
 
-enum PrincingError(val errorId: String) {
-  case EmptyCustomerId(message: String) extends PrincingError("EMPTY_CUSTOMER_ID")
-  case EmptyItemSku(message: String) extends PrincingError("EMPTY_ITEM_SKU")
-  case EmptyLineItemList(message: String) extends PrincingError("EMPTY_ITEM_LIST")
-  case EmptyCouponCode(message: String) extends PrincingError("EMPTY_COUPON_CODE")
-  case UnknownSku(message: String, sku: LineItem.Sku) extends PrincingError("UNKNOW_SKU")
+import com.example.domain.models.Customer.CustomerId
+
+enum PricingError(val errorCode: String) {
+  case EmptyCustomerId(message: String) extends PricingError("EMPTY_CUSTOMER_ID")
+  case EmptyItemSku(message: String) extends PricingError("EMPTY_ITEM_SKU")
+  case EmptyLineItemList(message: String) extends PricingError("EMPTY_ITEM_LIST")
+  case EmptyCouponCode(message: String) extends PricingError("EMPTY_COUPON_CODE")
+  case UnknownSku(message: String, sku: LineItem.Sku) extends PricingError("UNKNOW_SKU")
   case InvalidItemQuantity(message: String, sku: LineItem.Sku)
-      extends PrincingError("INVALID_ITEM_QUANITY")
+      extends PricingError("INVALID_ITEM_QUANITY")
   case CouponLimitReached(message: String, code: Coupon.CouponCode)
-      extends PrincingError("COUPON_LIMIT_REACHED")
+      extends PricingError("COUPON_LIMIT_REACHED")
   case CouponNotStackable(message: String, code: Coupon.CouponCode)
-      extends PrincingError("COUPON_NOT_STACKABLE")
+      extends PricingError("COUPON_NOT_STACKABLE")
   case CouponExpirationError(message: String, code: Coupon.CouponCode)
-      extends PrincingError("COUPON_EXPIRED")
+      extends PricingError("COUPON_EXPIRED")
   case CouponUnderExpectedAmount(message: String, code: Coupon.CouponCode)
-      extends PrincingError("COUPON_UNDER_EXPECTED_AMOUNT")
+      extends PricingError("COUPON_UNDER_EXPECTED_AMOUNT")
   case CouponInvalidDiscountPercentage(message: String, code: Coupon.CouponCode)
-      extends PrincingError("INVALID_DISCOUNT_PERCENTAGE")
-  case InvalidOrderAmountAggregation(message: String, orderId: Order.OrderId)
-      extends PrincingError("INVALID_ORDER_AMOUNT_AGGREGATION")
+      extends PricingError("INVALID_DISCOUNT_PERCENTAGE")
+  case CustomerNotFound(message: String, customerId: CustomerId)
+      extends PricingError("CUSTOMER_NOT_FOUND")
+  case CouponNotFound(message: String, code: Coupon.CouponCode)
+      extends PricingError("COUPON_NOT FOUND")
+  case OrderNotSaved(message: String, id: Order.OrderId) extends PricingError("ORDER_NOT_SAVED")
+  case OrderNotFound(message: String, id: Order.OrderId) extends PricingError("ORDER_NOT_FOUND")
 }
