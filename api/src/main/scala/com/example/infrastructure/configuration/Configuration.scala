@@ -30,7 +30,7 @@ object Configuration {
       orders = DynamoOrderRepository[F](dynamoClient)
     )
 
-  def run[F[_]: Async]: F[Nothing] = {
+  def run[F[_]: Async]: F[Unit] = {
     for {
       env <- createEnv[F]
       routes <- Routes.impl[F](env)
@@ -42,5 +42,5 @@ object Configuration {
         .withHttpApp(finalHttpApp)
         .build
     } yield ()
-  }.useForever
+  }
 }

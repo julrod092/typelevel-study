@@ -12,7 +12,7 @@ import io.scalaland.chimney.dsl.*
 import pricing.*
 import pricing.PriceAPIOperation.OrderPricingError
 
-object ApplicationService extends BaseService {
+object AplicationService extends BaseService {
 
   private def executeDB[F[_]: Monad, A, T, X](
       value: A
