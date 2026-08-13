@@ -1,5 +1,7 @@
 package com.example.domain.repositories
 
+sealed trait RepositoryRecord
+
 case class CouponRecord(
     code: String,
     discountAmount: BigDecimal,
@@ -8,21 +10,21 @@ case class CouponRecord(
     usageCount: Int,
     expiresAt: String,
     stackableWithTiers: Boolean
-)
+) extends RepositoryRecord
 
 case class CustomerRecord(
     customerId: String,
     tier: String,
     name: Option[String],
     createdAt: String
-)
+) extends RepositoryRecord
 
 case class LineItemRecord(
     sku: String,
     quantity: Int,
     unitPrice: BigDecimal,
     lineTotal: BigDecimal
-)
+) extends RepositoryRecord
 
 case class OrderRecord(
     orderId: String,
@@ -35,4 +37,4 @@ case class OrderRecord(
     couponCode: Option[String],
     createdAt: String,
     updatedAt: String
-)
+) extends RepositoryRecord

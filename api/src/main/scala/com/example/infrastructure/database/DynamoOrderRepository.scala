@@ -5,12 +5,8 @@ import cats.syntax.all.*
 import com.amazonaws.dynamodb.*
 import com.example.domain.repositories.{LineItemRecord, OrderRecord, OrdersRepository}
 
-final case class DynamoOrderRepository[F[_]: Async](client: DynamoDB[F])
-    extends OrdersRepository[F] {
-
-  type DynamoRecord = Map[AttributeName, AttributeValue]
-  private val tableName = TableArn("Orders")
-
+final case class DynamoOrderRepository[F[_]: Async](client: DynamoDB[F], tableName: TableArn)
+    extends OrdersRepository[F] with BaseDynamoDB[OrderRecord]{
 
   private def encodeLineItems(item: LineItemRecord): AttributeValue = AttributeValue.m(
     Map(
@@ -21,7 +17,7 @@ final case class DynamoOrderRepository[F[_]: Async](client: DynamoDB[F])
     )
   )
 
-  private def encodeOrder(record: OrderRecord): DynamoRecord = {
+  override def encodeRecord(record: OrderRecord): DynamoRecord = {
     val mandatoryValues = Map(
       AttributeName("orderId") -> AttributeValue.s(StringAttributeValue(record.orderId)),
       AttributeName("customerId") -> AttributeValue.s(StringAttributeValue(record.customerId)),
@@ -43,9 +39,11 @@ final case class DynamoOrderRepository[F[_]: Async](client: DynamoDB[F])
     }
   }
 
+  override def decodeRecord(record: DynamoRecord): Option[OrderRecord] = ???
+
   override def savePricedOrder(record: OrderRecord): F[OrderRecord] =
     client
-      .putItem(tableName, encodeOrder(record))
+      .putItem(tableName, encodeRecord(record))
       .attempt
       .map(_ => record)
 }

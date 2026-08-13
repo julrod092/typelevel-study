@@ -3,23 +3,21 @@ package com.example.infrastructure.database
 import cats.effect.Async
 import cats.syntax.all.*
 import com.amazonaws.dynamodb.*
-import com.example.domain.repositories.CustomersRepository
-import com.example.domain.repositories.CustomerRecord
 import com.example.domain.models.Customer.CustomerId
+import com.example.domain.repositories.{CustomerRecord, CustomersRepository}
 
-final case class DynamoCustomerRepository[F[_]: Async](client: DynamoDB[F])
-    extends CustomersRepository[F] {
+final case class DynamoCustomerRepository[F[_]: Async](client: DynamoDB[F], tableName: TableArn)
+    extends CustomersRepository[F]
+    with BaseDynamoDB[CustomerRecord] {
 
-  private val tableName = TableArn("Customer")
+  override def encodeRecord(record: CustomerRecord): DynamoRecord = ???
 
-  private def decodeResponse(
-      response: Map[AttributeName, AttributeValue]
-  ): Option[CustomerRecord] = {
+  override def decodeRecord(record: DynamoRecord): Option[CustomerRecord] = {
     for {
-      customerId <- response.get(AttributeName("customerId")).flatMap(_.project.s).map(_.value)
-      tier <- response.get(AttributeName("tier")).flatMap(_.project.s).map(_.value)
-      name <- response.get(AttributeName("name")).map(_.project.s)
-      createdAt <- response.get(AttributeName("createdAt")).flatMap(_.project.s).map(_.value)
+      customerId <- record.get(AttributeName("customerId")).flatMap(_.project.s).map(_.value)
+      tier <- record.get(AttributeName("tier")).flatMap(_.project.s).map(_.value)
+      name <- record.get(AttributeName("name")).map(_.project.s)
+      createdAt <- record.get(AttributeName("createdAt")).flatMap(_.project.s).map(_.value)
     } yield CustomerRecord(
       customerId = customerId,
       tier = tier,
@@ -36,6 +34,6 @@ final case class DynamoCustomerRepository[F[_]: Async](client: DynamoDB[F])
     client
       .getItem(tableName, key)
       .attempt
-      .map(_.toOption.flatMap(_.item.flatMap(decodeResponse)))
+      .map(_.toOption.flatMap(_.item.flatMap(decodeRecord)))
   }
 }

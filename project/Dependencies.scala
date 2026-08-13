@@ -22,6 +22,8 @@ object Dependencies {
     "org.typelevel" %% "cats-effect" % Versions.catsEffect,
     "org.tpolecat" %% "natchez-core" % Versions.natchez,
     "io.scalaland" %% "chimney" % Versions.chimney,
+    "is.cir" %% "ciris" % Versions.ciris,
+    "is.cir" %% "ciris-refined" % Versions.ciris,
     "org.typelevel" %% "weaver-cats" % Versions.weaver % Test
   )
 

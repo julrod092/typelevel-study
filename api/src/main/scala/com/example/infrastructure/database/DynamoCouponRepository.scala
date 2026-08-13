@@ -16,29 +16,29 @@ import com.example.domain.repositories.{
   CustomerRecord,
   CustomersRepository
 }
+import com.example.infrastructure.configuration.AppConfig
 
-final case class DynamoCouponRepository[F[_]: Async](client: DynamoDB[F])
-    extends CouponsRepository[F] {
+final case class DynamoCouponRepository[F[_]: Async](client: DynamoDB[F], tableName: TableArn)
+    extends CouponsRepository[F]
+    with BaseDynamoDB[CouponRecord] {
 
-  private val tableName = TableArn("Coupon")
+  override def encodeRecord(record: CouponRecord): DynamoRecord = ???
 
-  private def decodeResponse(
-      response: Map[AttributeName, AttributeValue]
-  ): Option[CouponRecord] = {
+  override def decodeRecord(record: DynamoRecord): Option[CouponRecord] = {
     for {
-      code <- response.get(AttributeName("couponCode")).flatMap(_.project.s).map(_.value)
-      percentage <- response
+      code <- record.get(AttributeName("couponCode")).flatMap(_.project.s).map(_.value)
+      percentage <- record
         .get(AttributeName("discountPercentage"))
         .flatMap(_.project.n)
         .map(_.value)
-      minOrderAmount <- response
+      minOrderAmount <- record
         .get(AttributeName("minOrderAmount"))
         .flatMap(_.project.n)
         .map(_.value)
-      limit <- response.get(AttributeName("usageLimit")).flatMap(_.project.n).map(_.value)
-      count <- response.get(AttributeName("usageCount")).flatMap(_.project.n).map(_.value)
-      expiration <- response.get(AttributeName("expiresAt")).flatMap(_.project.s).map(_.value)
-      stackableWithTier <- response
+      limit <- record.get(AttributeName("usageLimit")).flatMap(_.project.n).map(_.value)
+      count <- record.get(AttributeName("usageCount")).flatMap(_.project.n).map(_.value)
+      expiration <- record.get(AttributeName("expiresAt")).flatMap(_.project.s).map(_.value)
+      stackableWithTier <- record
         .get(AttributeName("stackableWithTier"))
         .flatMap(_.project.bool)
         .map(_.value)
@@ -61,6 +61,6 @@ final case class DynamoCouponRepository[F[_]: Async](client: DynamoDB[F])
     client
       .getItem(tableName, key)
       .attempt
-      .map(_.toOption.flatMap(_.item.flatMap(decodeResponse)))
+      .map(_.toOption.flatMap(_.item.flatMap(decodeRecord)))
   }
 }
