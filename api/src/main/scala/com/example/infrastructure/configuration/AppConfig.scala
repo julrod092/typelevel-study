@@ -5,9 +5,8 @@ import cats.syntax.all.*
 import ciris.{ConfigValue, env}
 import com.amazonaws.dynamodb.TableArn
 import com.comcast.ip4s.{Host, Port, ipv4, port}
-import smithy4s.aws.AwsRegion
-
-import java.net.URI
+import org.http4s.Uri
+import smithy4s.aws.{AwsCredentials, AwsRegion}
 
 final case class AppConfig(
     aws: AppConfig.AwsConfig,
@@ -23,16 +22,10 @@ object AppConfig {
       ordersTableName: TableArn
   )
 
-  final case class AwsCredentials(
-      accessKeyId: ciris.Secret[String],
-      secretAccessKey: ciris.Secret[String],
-      sessionToken: ciris.Secret[Option[String]]
-  )
-
   final case class AwsConfig(
       region: AwsRegion,
-      url: Option[URI],
-      token: Option[AwsCredentials]
+      url: Option[Uri],
+      token: AwsCredentials
   )
 
   final case class HttpConfig(
@@ -68,19 +61,20 @@ object AppConfig {
         AppConfig(
           aws = AwsConfig(
             region = AwsRegion(awsRegion),
-            url = awsUrl.map(URI(_)),
-            token = AwsCredentials(
-              accessKeyId = awsAccessKey,
-              secretAccessKey = awsApiKey,
-              sessionToken = awsSessionToken
-            ).some
+            url = awsUrl.flatMap(Uri.fromString(_).toOption),
+            token = AwsCredentials
+              .Default(
+                accessKeyId = awsAccessKey.value,
+                secretAccessKey = awsApiKey.value,
+                sessionToken = awsSessionToken.value
+              )
           ),
           tables = DynamoTables(
             couponsTableName = TableArn(couponsTableName),
             customersTableName = TableArn(customersTableName),
             ordersTableName = TableArn(ordersTableName)
           ),
-          http = HttpConfig(host = ipv4"$host", port = port"$port")
+          http = HttpConfig(host = ipv4(), port = port"$port")
         )
     }
 }
