@@ -8,15 +8,17 @@ import com.example.domain.repositories.{CouponRecord, CustomerRecord}
 import com.example.domain.services.{OrderPriceService, ValidationService}
 import com.example.infrastructure.errors.ErrorHandler
 import com.example.infrastructure.transformers.ApiTransformer.given
+import com.example.infrastructure.transformers.RecordTransformer.given
 import io.scalaland.chimney.dsl.*
 import pricing.*
 import pricing.PriceAPIOperation.OrderPricingError
+import io.scalaland.chimney.Transformer
 
 object ApplicationService extends BaseService {
 
   private def executeDB[F[_]: Monad, A, T, X](
       value: A
-  )(f: A => F[Option[T]]): Response[F, X] = {
+  )(f: A => F[Option[T]])(using transformer: Transformer[T, X]): Response[F, X] =
     EitherT
       .fromOptionF[F, OrderPricingError, T](
         f(value),
@@ -24,8 +26,8 @@ object ApplicationService extends BaseService {
           NotFoundError("NOT_FOUND".some, s"Can not find value $value".some)
         )
       )
-      .map(_.transformInto[X])
-  }
+      .map(transformer.transform)
+
 
   private def executeValidation[F[_]: Monad](value: CustomerOrder)(
       f: CustomerOrder => ValidatedNec[DomainError, CustomerOrder]
@@ -52,13 +54,11 @@ object ApplicationService extends BaseService {
       customer <- executeDB[F, Customer.CustomerId, CustomerRecord, Customer](
         domainObj.customerId
       )(env.customers.customerByCustomerId)
-      coupon <- domainObj.couponCode.fold[Response[F, Option[Coupon]]](
-        EitherT.rightT[F, OrderPricingError](None)
-      )(value =>
-        executeDB[F, Coupon.CouponCode, CouponRecord, Option[Coupon]](value)(
+      coupon <- domainObj.couponCode.traverse { value =>
+        executeDB[F, Coupon.CouponCode, CouponRecord, Coupon](value)(
           env.coupons.couponByCouponCode
         )
-      )
+      }
       result <- executePricing(validation, customer, coupon)(OrderPriceService.createOrder)
     } yield result.transformInto[OrderPricedDTO]
   }

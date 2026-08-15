@@ -24,6 +24,7 @@ object Dependencies {
     "io.scalaland" %% "chimney" % Versions.chimney,
     "is.cir" %% "ciris" % Versions.ciris,
     "is.cir" %% "ciris-refined" % Versions.ciris,
+    "is.cir" %% "ciris-http4s" % Versions.ciris,
     "org.typelevel" %% "weaver-cats" % Versions.weaver % Test
   )
 

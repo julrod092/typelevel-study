@@ -19,6 +19,9 @@ import org.http4s.implicits.*
 import org.http4s.server.middleware.Logger
 import smithy4s.{Endpoint, Hints}
 import smithy4s.aws.{AwsClient, AwsEnvironment, Timestamp}
+import com.comcast.ip4s.ipv4
+import com.comcast.ip4s.port
+
 
 final case class PricingEnvironment[F[_]](
     customers: CustomersRepository[F],

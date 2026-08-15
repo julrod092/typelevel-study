@@ -7,6 +7,9 @@ import io.scalaland.chimney.dsl.*
 
 import java.time.Instant
 import com.example.domain.models.Coupon
+import com.example.domain.repositories.CustomerRecord
+import com.example.domain.repositories.CouponRecord
+import com.example.domain.models.CustomerTier
 
 object RecordTransformer {
 
@@ -44,6 +47,36 @@ object RecordTransformer {
       .withFieldComputed(_.couponCode, _.couponCode.map(_.value))
       .withFieldComputed(_.createdAt, _.toString)
       .withFieldComputed(_.updatedAt, _.toString)
+      .buildTransformer
+
+  given Transformer[CustomerRecord, Customer] =
+    Transformer
+      .define[CustomerRecord, Customer]
+      .withFieldComputed(_.customerId, value => Customer.CustomerId(value.customerId))
+      .withFieldComputed(_.tier, value => CustomerTier.valueOf(value.tier))
+      .withFieldComputed(_.createdAt, value => Instant.parse(value.createdAt))
+      .buildTransformer
+
+  given Transformer[Customer, CustomerRecord] =
+    Transformer
+      .define[Customer, CustomerRecord]
+      .withFieldComputed(_.customerId, _.customerId.value)
+      .withFieldComputed(_.tier, _.tier.toString)
+      .withFieldComputed(_.createdAt, _.createdAt.toString)
+      .buildTransformer
+
+  given Transformer[CouponRecord, Coupon] =
+    Transformer
+      .define[CouponRecord, Coupon]
+      .withFieldComputed(_.code, value => Coupon.CouponCode(value.code))
+      .withFieldComputed(_.expiresAt, value => Instant.parse(value.expiresAt))
+      .buildTransformer
+
+  given Transformer[Coupon, CouponRecord] =
+    Transformer
+      .define[Coupon, CouponRecord]
+      .withFieldComputed(_.code, _.code.value)
+      .withFieldComputed(_.expiresAt, _.expiresAt.toString)
       .buildTransformer
 
 }

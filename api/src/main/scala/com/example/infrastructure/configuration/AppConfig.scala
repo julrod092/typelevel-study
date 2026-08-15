@@ -3,6 +3,7 @@ package com.example.infrastructure.configuration
 import cats.effect.Async
 import cats.syntax.all.*
 import ciris.{ConfigValue, env}
+import ciris.http4s.*
 import com.amazonaws.dynamodb.TableArn
 import com.comcast.ip4s.{Host, Port, ipv4, port}
 import org.http4s.Uri
@@ -35,8 +36,8 @@ object AppConfig {
 
   def config[F[_]: Async]: ConfigValue[F, AppConfig] =
     (
-      env("SERVICE_PORT").as[Int].default(8080),
-      env("SERVICE_HOST").as[String].default("0.0.0.0"),
+      env("SERVICE_PORT").as[Port],
+      env("SERVICE_HOST").as[Host],
       env("ORDERS_TABLE_NAME").as[String],
       env("CUSTOMERS_TABLE_NAME").as[String],
       env("COUPONS_TABLE_NAME").as[String],
@@ -74,7 +75,7 @@ object AppConfig {
             customersTableName = TableArn(customersTableName),
             ordersTableName = TableArn(ordersTableName)
           ),
-          http = HttpConfig(host = ipv4(), port = port"$port")
+          http = HttpConfig(host = host, port = port)
         )
     }
 }

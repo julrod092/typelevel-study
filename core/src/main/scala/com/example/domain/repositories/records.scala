@@ -4,7 +4,7 @@ sealed trait RepositoryRecord
 
 case class CouponRecord(
     code: String,
-    discountAmount: BigDecimal,
+    discountPercent: Int,
     minOrderAmount: BigDecimal,
     usageLimit: Int,
     usageCount: Int,

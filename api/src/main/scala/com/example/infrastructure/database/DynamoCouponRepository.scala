@@ -44,7 +44,7 @@ final case class DynamoCouponRepository[F[_]: Async](client: DynamoDB[F], tableN
         .map(_.value)
     } yield CouponRecord(
       code = code,
-      discountAmount = BigDecimal(percentage),
+      discountPercent = percentage.toInt,
       minOrderAmount = BigDecimal(minOrderAmount),
       usageLimit = limit.toInt,
       usageCount = count.toInt,
