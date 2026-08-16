@@ -53,6 +53,7 @@ build/smithy/classpath.json
 
 # NodeJS
 deployment/node_modules
+deployment/lib/
 
 # devenv
 .devenv*

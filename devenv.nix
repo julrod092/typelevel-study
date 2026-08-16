@@ -3,9 +3,6 @@
   lib,
   ...
 }: let
-  aws-cdk-local = pkgs.callPackage ./packages/aws-cdk-local {
-    nodejs_24 = pkgs.nodejs_24;
-  };
   compose = "docker compose -f deployment/docker-compose.yml";
 in {
   languages.java = {
@@ -18,9 +15,9 @@ in {
     scala-cli
     metals
     scalafmt
-    nodejs_24
-    aws-cdk-local
+    nodejs_latest
     awscli2
+    curl
     docker-client
     docker-compose
   ];
@@ -36,7 +33,6 @@ in {
   enterShell = ''
     export DOCKER_SOCK="''${DOCKER_SOCK:-''${XDG_RUNTIME_DIR:-/run/user/$UID}/podman/podman.sock}"
     export DOCKER_HOST="''${DOCKER_HOST:-unix://$DOCKER_SOCK}"
-    export NODE_PATH="$DEVENV_ROOT/deployment/node_modules''${NODE_PATH:+:$NODE_PATH}"
   '';
 
   scripts = {
@@ -65,6 +61,6 @@ in {
     sbt --script-version
     node --version
     npm --version
-    cdklocal --version
+    deployment/node_modules/.bin/cdklocal --version
   '';
 }
