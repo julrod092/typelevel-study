@@ -17,16 +17,16 @@ function requiredEnvironment(name: string): string {
     return value;
 }
 
-const lambdaMountDirectory = requiredEnvironment("LAMBDA_MOUNT_CWD");
-const lambdaHandler = requiredEnvironment("LAMBDA_HANDLER");
+//const lambdaMountDirectory = requiredEnvironment("LAMBDA_MOUNT_CWD");
+//const lambdaHandler = requiredEnvironment("LAMBDA_HANDLER");
 
-if (!path.isAbsolute(llambdaMountDirectory)) {
-    throw new Error("LAMBDA_MOUNT_CWD must be an absolute path");
-}
+//if (!path.isAbsolute(lambdaMountDirectory)) {
+//    throw new Error("LAMBDA_MOUNT_CWD must be an absolute path");
+//}
 
 class TypeLevelLocalStack extends cdk.Stack {
 
-    constructor(scope: Construct, id: String, props: cdk.StackProps) {
+    constructor(scope: Construct, id: string, props: cdk.StackProps) {
         super(scope, id, props);
 
         const customersTable = new dynamodb.Table(this, "CustomersTable", {
@@ -35,7 +35,7 @@ class TypeLevelLocalStack extends cdk.Stack {
                 name: "customerId",
                 type: dynamodb.AttributeType.STRING
             },
-            billingMode: dynamodb.BillingMode,
+            billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
             removalPolicy: cdk.RemovalPolicy.DESTROY
         });
 
@@ -45,7 +45,7 @@ class TypeLevelLocalStack extends cdk.Stack {
                 name: "couponCode",
                 type: dynamodb.AttributeType.STRING
             },
-            billingMode: dynamodb.BillingMode,
+            billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
             removalPolicy: cdk.RemovalPolicy.DESTROY
         });
 
@@ -55,9 +55,37 @@ class TypeLevelLocalStack extends cdk.Stack {
                 name: "orderId",
                 type: dynamodb.AttributeType.STRING
             },
-            billingMode: dynamodb.BillingMode,
+            billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
             stream: dynamodb.StreamViewType.NEW_IMAGE,
             removalPolicy: cdk.RemovalPolicy.DESTROY
         });
+
+        new cdk.CfnOutput(this, "CustomersTableName", {
+            value: customersTable.tableName
+        });
+
+        new cdk.CfnOutput(this, "CouponsTableName", {
+            value: couponsTable.tableName
+        });
+
+        new cdk.CfnOutput(this, "OrdersTableName", {
+            value: ordersTable.tableName
+        });
+
+        new cdk.CfnOutput(this, "OrdersStreamArn", {
+            value: ordersTable.tableStreamArn!
+        });
     }
 }
+
+const app = new cdk.App();
+
+new TypeLevelLocalStack(app, "TypeLevelLocalStack", {
+    env: {
+        account: "000000000000",
+        region: "us-east-1"
+    },
+    synthesizer: new cdk.BootstraplessSynthesizer()
+});
+
+app.synth();

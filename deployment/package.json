@@ -4,8 +4,9 @@
     "private": true,
     "scripts": {
         "typecheck": "tsc --noEmit",
-        "deploy:local": "cdklocal deploy TypelevelStudyLocalStack --require-approval never",
-        "destroy:local": "cdklocal destroy TypelevelStudyLocalStack --force"
+        "synth": "cdk synth",
+        "deploy:local": "cdklocal deploy TypeLevelLocalStack --require-approval never",
+        "destroy:local": "cdklocal destroy TypeLevelLocalStack --force"
     },
     "dependencies": {
         "aws-cdk-lib": "2.265.0",
