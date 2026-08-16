@@ -1,0 +1,20 @@
+{
+    "name": "typelevel-study-infra",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "typecheck": "tsc --noEmit",
+        "deploy:local": "cdklocal deploy TypelevelStudyLocalStack --require-approval never",
+        "destroy:local": "cdklocal destroy TypelevelStudyLocalStack --force"
+    },
+    "dependencies": {
+        "aws-cdk-lib": "2.265.0",
+        "constructs": "10.8.1"
+    },
+    "devDependencies": {
+        "@types/node": "^24.0.0",
+        "aws-cdk": "2.1136.0",
+        "ts-node": "10.9.2",
+        "typescript": "5.9.3"
+    }
+}
