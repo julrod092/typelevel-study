@@ -2,6 +2,8 @@ package com.example.services
 
 import cats.Monad
 import cats.data.{EitherT, Kleisli, ValidatedNec}
+import cats.effect.{Clock, Sync}
+import cats.effect.std.UUIDGen
 import cats.syntax.all.*
 import com.example.domain.models.{Coupon, Customer, CustomerOrder, DomainError, Order}
 import com.example.domain.repositories.{CouponRecord, CustomerRecord}
@@ -13,6 +15,9 @@ import io.scalaland.chimney.dsl.*
 import pricing.*
 import pricing.PriceAPIOperation.OrderPricingError
 import io.scalaland.chimney.Transformer
+import com.example.domain.repositories.OrderRecord
+
+import java.time.Instant
 
 object ApplicationService extends BaseService {
 
@@ -27,7 +32,6 @@ object ApplicationService extends BaseService {
         )
       )
       .map(transformer.transform)
-
 
   private def executeValidation[F[_]: Monad](value: CustomerOrder)(
       f: CustomerOrder => ValidatedNec[DomainError, CustomerOrder]
@@ -45,7 +49,7 @@ object ApplicationService extends BaseService {
       f(order, customer, coupon).toEither.leftMap(ErrorHandler.handleDomainErrors)
     )
 
-  def createOrder[F[_]: Monad](
+  def createOrder[F[_]: Sync](
       dto: OrderPriceDTO
   ): Environment[F, OrderPricedDTO] = Kleisli { env =>
     val domainObj = dto.transformInto[CustomerOrder]
@@ -59,7 +63,22 @@ object ApplicationService extends BaseService {
           env.coupons.couponByCouponCode
         )
       }
-      result <- executePricing(validation, customer, coupon)(OrderPriceService.createOrder)
+      now <- EitherT.liftF[F, OrderPricingError, Instant](Clock[F].realTimeInstant)
+      orderId <- EitherT.liftF[F, OrderPricingError, Order.OrderId](
+        UUIDGen[F].randomUUID.map(uuid => Order.OrderId(uuid.toString))
+      )
+      result <- executePricing(validation, customer, coupon) { (order, customer, coupon) =>
+        OrderPriceService.createOrder(order, customer, coupon, orderId, now)
+      }
+      savedResult <- EitherT
+        .liftF[F, OrderPricingError, OrderRecord](
+          env.orders.savePricedOrder(result.transformInto[OrderRecord])
+        )
+        .leftMap { case error =>
+          pricing.PriceAPIGen.OrderPricingError.internalServerError(
+            InternalServerError("500".some, "Error storing order, please try again later.".some)
+          )
+        }
     } yield result.transformInto[OrderPricedDTO]
   }
 }

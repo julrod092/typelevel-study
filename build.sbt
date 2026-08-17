@@ -20,6 +20,19 @@ lazy val api = (project in file("api"))
   )
   .dependsOn(core)
 
+lazy val apiIntegration = (project in file("api-integration"))
+  .settings(commonSettings)
+  .settings(
+    name += "-api-integration",
+    libraryDependencies ++= Dependencies.apiIntegration,
+    Test / scalaSource := (api / baseDirectory).value / "src" / "it" / "scala",
+    Test / resourceDirectory := (api / baseDirectory).value / "src" / "it" / "resources",
+    Test / fork := true,
+    Test / parallelExecution := false,
+    publish / skip := true
+  )
+  .dependsOn(api)
+
 lazy val eventHandler = (project in file("event-handler"))
   .settings(commonSettings)
   .settings(

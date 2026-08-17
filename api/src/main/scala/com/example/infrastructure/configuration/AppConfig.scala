@@ -41,10 +41,10 @@ object AppConfig {
       env("ORDERS_TABLE_NAME").as[String],
       env("CUSTOMERS_TABLE_NAME").as[String],
       env("COUPONS_TABLE_NAME").as[String],
-      env("AWS_REGION").as[String],
-      env("AWS_URL").as[String].option,
-      env("AWS_ACCESS_KEY").as[String].secret,
-      env("AWS_API_KEY").as[String].secret,
+      env("AWS_DEFAULT_REGION").as[String],
+      env("AWS_ENDPOINT_URL").as[String].option,
+      env("AWS_ACCESS_KEY_ID").as[String].secret,
+      env("AWS_SECRET_ACCESS_KEY").as[String].secret,
       env("AWS_SESSION_TOKEN").as[String].option.secret
     ).parMapN {
       (

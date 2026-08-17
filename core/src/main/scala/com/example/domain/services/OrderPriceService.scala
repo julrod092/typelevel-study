@@ -5,7 +5,6 @@ import cats.data.ValidatedNec
 import cats.syntax.all.*
 import cats.instances.all.*
 
-import java.util.UUID
 import java.time.Instant
 import cats.instances.tuple
 
@@ -35,10 +34,11 @@ object OrderPriceService {
   private def validateCoupon(
       coupon: Coupon,
       customer: Customer,
-      subTotal: BigDecimal
+      subTotal: BigDecimal,
+      now: Instant
   ): ValidatedNec[DomainError, Coupon] = {
     val validateExpiration: ValidatedNec[DomainError, Instant] =
-      if (coupon.expiresAt.isAfter(Instant.now())) coupon.expiresAt.validNec
+      if (coupon.expiresAt.isAfter(now)) coupon.expiresAt.validNec
       else DomainError.CouponExpirationError("Coupon Expired", coupon.code).invalidNec
 
     val validateUsage: ValidatedNec[DomainError, Boolean] =
@@ -84,7 +84,9 @@ object OrderPriceService {
   def createOrder(
       customerOrder: CustomerOrder,
       customer: Customer,
-      coupon: Option[Coupon]
+      coupon: Option[Coupon],
+      orderId: Order.OrderId,
+      now: Instant
   ): ValidatedNec[DomainError, Order] = {
 
     customerOrder.items
@@ -92,11 +94,11 @@ object OrderPriceService {
       .andThen { items =>
         val subtotal: BigDecimal = items.map(_.lineTotal).sum
         val validatedCoupon: Option[Coupon] =
-          coupon.flatMap(value => validateCoupon(value, customer, subtotal).toOption)
+          coupon.flatMap(value => validateCoupon(value, customer, subtotal, now).toOption)
         val discountAmount: BigDecimal =
           validatedCoupon.map(value => subtotal * (value.discountPercent / 100)).getOrElse(0)
         Order(
-          orderId = Order.OrderId(UUID.randomUUID().toString),
+          orderId = orderId,
           customerId = customerOrder.customerId,
           status = OrderStatus.InProgress,
           items = items,
@@ -104,8 +106,8 @@ object OrderPriceService {
           discountAmount = discountAmount,
           total = subtotal - discountAmount,
           couponCode = validatedCoupon.map(_.code),
-          createdAt = Instant.now(),
-          updatedAt = Instant.now()
+          createdAt = now,
+          updatedAt = now
         ).validNec
       }
   }

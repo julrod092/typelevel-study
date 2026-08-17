@@ -6,9 +6,11 @@
         "typecheck": "tsc --noEmit",
         "synth": "cdk synth",
         "deploy:local": "cdklocal deploy TypeLevelLocalStack --require-approval never",
+        "seed:local": "ts-node typelevel-study-setup.ts --seed",
         "destroy:local": "cdklocal destroy TypeLevelLocalStack --force"
     },
     "dependencies": {
+        "@aws-sdk/client-dynamodb": "^3.1111.0",
         "aws-cdk-lib": "2.265.0",
         "constructs": "10.8.1"
     },

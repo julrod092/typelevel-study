@@ -3,16 +3,16 @@ import sbt.*
 object Versions {
   val cats = "2.13.0"
   val catsEffect = "3.7.0"
-  val catsEffectTesting = "1.8.0"
   val chimney = "1.11.0"
   val circe = "0.14.16"
   val ciris = "3.15.0"
   val fs2 = "3.13.0"
   val http4s = "0.23.36"
   val natchez = "0.3.10"
-  val scalaTest = "3.2.19"
+  val scalaCheck = "1.17.0"
   val smithy4s = "0.19.11"
-  val weaver = "0.13.0"
+  val testcontainers = "2.0.5"
+  val weaver = "0.8.4"
 }
 
 object Dependencies {
@@ -25,10 +25,12 @@ object Dependencies {
     "is.cir" %% "ciris" % Versions.ciris,
     "is.cir" %% "ciris-refined" % Versions.ciris,
     "is.cir" %% "ciris-http4s" % Versions.ciris,
-    "org.typelevel" %% "weaver-cats" % Versions.weaver % Test
+    "com.disneystreaming" %% "weaver-cats" % Versions.weaver % Test,
+    "com.disneystreaming" %% "weaver-scalacheck" % Versions.weaver % Test,
+    "org.scalacheck" %% "scalacheck" % Versions.scalaCheck % Test
   )
 
-  val api: Seq[ModuleID] = common ++ Seq(
+  val api: Seq[ModuleID] = Seq(
     "com.disneystreaming.smithy4s" %% "smithy4s-core" % Versions.smithy4s,
     "com.disneystreaming.smithy4s" %% "smithy4s-http4s" % Versions.smithy4s,
     "com.disneystreaming.smithy4s" %% "smithy4s-http4s-swagger" % Versions.smithy4s,
@@ -41,7 +43,11 @@ object Dependencies {
     "io.circe" %% "circe-generic" % Versions.circe
   )
 
-  val eventHandler: Seq[ModuleID] = common ++ Seq(
+  val apiIntegration: Seq[ModuleID] = Seq(
+    "org.testcontainers" % "testcontainers-localstack" % Versions.testcontainers % Test
+  )
+
+  val eventHandler: Seq[ModuleID] = Seq(
     "co.fs2" %% "fs2-core" % Versions.fs2
   )
 }

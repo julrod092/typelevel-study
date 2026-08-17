@@ -3,10 +3,9 @@
 POST http://localhost:8080/orders/price
 
 {
-  "customerId": "",
+  "customerId": "customer-1",
   "items": [{
-    "sku": "",
-    "quantity": -1
-  }],
-  "couponCode": ""
+    "sku": "SKU-001",
+    "quantity": 1
+  }]
 }
