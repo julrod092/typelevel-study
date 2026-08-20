@@ -44,7 +44,7 @@ object PriceHttpContractSuite extends SimpleIOSuite {
           } yield OrderRecord(
             orderId = id,
             customerId = customer.customerId,
-            status = "InProgress",
+            status = "Priced",
             items = List(LineItemRecord("SKU-001", 2, BigDecimal("19.99"), BigDecimal("39.98"))),
             subtotal = BigDecimal("39.98"),
             discountAmount = BigDecimal(0),
@@ -58,7 +58,7 @@ object PriceHttpContractSuite extends SimpleIOSuite {
             expect(
               body.hcursor.get[String]("customerId").toOption.contains(customer.customerId)
             ) and
-            expect(body.hcursor.get[String]("status").toOption.contains("InProgress")) and
+            expect(body.hcursor.get[String]("status").toOption.contains("Priced")) and
             expect(decimal(body, "subtotal").contains(BigDecimal("39.98"))) and
             expect(decimal(body, "discountAmount").contains(BigDecimal(0))) and
             expect(decimal(body, "total").contains(BigDecimal("39.98"))) and

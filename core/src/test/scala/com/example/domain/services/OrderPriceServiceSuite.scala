@@ -55,7 +55,7 @@ object OrderPriceServiceSuite extends SimpleIOSuite with Checkers {
 
           expect(order.orderId == metadata.orderId) and
             expect(order.customerId == request.customerId) and
-            expect(order.status == OrderStatus.InProgress) and
+            expect(order.status == OrderStatus.Priced) and
             expect(order.items == expectedItems) and
             expect(order.subtotal == expectedSubtotal) and
             expect(order.discountAmount == BigDecimal(0)) and

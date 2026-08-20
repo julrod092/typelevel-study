@@ -4,7 +4,6 @@ import java.time.Instant
 
 enum OrderStatus(value: String) {
   case Priced extends OrderStatus("PRICED")
-  case InProgress extends OrderStatus("IN_PROGRESS")
 }
 
 case class LineItem(
