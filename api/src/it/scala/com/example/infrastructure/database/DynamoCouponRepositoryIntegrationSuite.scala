@@ -14,7 +14,7 @@ object DynamoCouponRepositoryIntegrationSuite extends DynamoIntegrationSuite {
     forall(RecordGenerators.couponRecord) { record =>
       val encoded = fixture.coupons.encodeRecord(record)
       val key = Map(
-        DynamoSchema.CouponCode -> AttributeValue.s(StringAttributeValue(record.code))
+        fixture.coupons.keyAttribute -> AttributeValue.s(StringAttributeValue(record.code))
       )
 
       for {
@@ -40,7 +40,7 @@ object DynamoCouponRepositoryIntegrationSuite extends DynamoIntegrationSuite {
   test("malformed stored coupons do not decode") { fixture =>
     forall(RecordGenerators.couponRecord) { record =>
       val encoded = fixture.coupons.encodeRecord(record)
-      val removableKey = encoded.keys.filterNot(_ == DynamoSchema.CouponCode).head
+      val removableKey = encoded.keys.filterNot(_ == fixture.coupons.keyAttribute).head
       val malformed = encoded - removableKey
 
       fixture.client

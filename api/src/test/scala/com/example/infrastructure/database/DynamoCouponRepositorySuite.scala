@@ -1,7 +1,7 @@
 package com.example.infrastructure.database
 
 import cats.effect.IO
-import com.amazonaws.dynamodb.{AttributeValue, NumberAttributeValue}
+import com.amazonaws.dynamodb.{AttributeName, AttributeValue, NumberAttributeValue}
 import com.example.generators.RecordGenerators
 import com.example.generators.RecordGenerators.given
 import com.example.support.DynamoClientStub
@@ -9,6 +9,14 @@ import weaver.SimpleIOSuite
 import weaver.scalacheck.Checkers
 
 object DynamoCouponRepositorySuite extends SimpleIOSuite with Checkers {
+
+  test("The coupon repository uses couponCode as its storage and lookup partition key") {
+    forall(RecordGenerators.tableArn) { table =>
+      val repository = DynamoCouponRepository[IO](DynamoClientStub.unexpected, table)
+
+      expect(repository.keyAttribute == AttributeName("couponCode"))
+    }
+  }
 
   test("coupon records round trip through DynamoDB attributes") {
     val scenario = for {

@@ -14,7 +14,7 @@ object DynamoCustomerRepositoryIntegrationSuite extends DynamoIntegrationSuite {
     forall(RecordGenerators.customerRecord) { record =>
       val encoded = fixture.customers.encodeRecord(record)
       val key = Map(
-        DynamoSchema.CustomerId -> AttributeValue.s(StringAttributeValue(record.customerId))
+        fixture.customers.keyAttribute -> AttributeValue.s(StringAttributeValue(record.customerId))
       )
 
       for {

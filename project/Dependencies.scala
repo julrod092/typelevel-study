@@ -8,6 +8,7 @@ object Versions {
   val ciris = "3.15.0"
   val fs2 = "3.13.0"
   val http4s = "0.23.36"
+  val monocle = "3.3.0"
   val natchez = "0.3.10"
   val scalaCheck = "1.17.0"
   val smithy4s = "0.19.11"
@@ -27,6 +28,8 @@ object Dependencies {
     "is.cir" %% "ciris-http4s" % Versions.ciris,
     "com.disneystreaming" %% "weaver-cats" % Versions.weaver % Test,
     "com.disneystreaming" %% "weaver-scalacheck" % Versions.weaver % Test,
+    "dev.optics" %% "monocle-core" % Versions.monocle % Test,
+    "dev.optics" %% "monocle-macro" % Versions.monocle % Test,
     "org.scalacheck" %% "scalacheck" % Versions.scalaCheck % Test
   )
 

@@ -45,6 +45,10 @@ object ErrorHandler {
           ValidationError.couponError(
             CouponValidationError(error.errorCode, error.message, error.code.value.some)
           )
+        case error: CouponInvalidDiscountPercentage =>
+          ValidationError.couponError(
+            CouponValidationError(error.errorCode, error.message, error.code.value.some)
+          )
       }
       acc ++ List(transformToAppError)
     }

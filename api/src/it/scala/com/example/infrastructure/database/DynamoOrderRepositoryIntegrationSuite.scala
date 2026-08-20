@@ -12,7 +12,7 @@ object DynamoOrderRepositoryIntegrationSuite extends DynamoIntegrationSuite {
     forall(RecordGenerators.orderRecord) { record =>
       val expected = fixture.orders.encodeRecord(record)
       val key = Map(
-        DynamoSchema.OrderId -> AttributeValue.s(StringAttributeValue(record.orderId))
+        fixture.orders.keyAttribute -> AttributeValue.s(StringAttributeValue(record.orderId))
       )
 
       for {
@@ -35,9 +35,9 @@ object DynamoOrderRepositoryIntegrationSuite extends DynamoIntegrationSuite {
     forall(RecordGenerators.orderRecordWithoutCoupon) { record =>
       val expected = fixture.orders.encodeRecord(record)
 
-      fixture.orders.savePricedOrder(record).map(_ =>
-        expect(expected.keySet == RecordGenerators.expectedAttributes(record))
-      )
+      fixture.orders
+        .savePricedOrder(record)
+        .map(_ => expect(expected.keySet == RecordGenerators.expectedAttributes(record)))
     }
   }
 
@@ -45,9 +45,9 @@ object DynamoOrderRepositoryIntegrationSuite extends DynamoIntegrationSuite {
     forall(RecordGenerators.orderRecordWithCoupon) { record =>
       val expected = fixture.orders.encodeRecord(record)
 
-      fixture.orders.savePricedOrder(record).map(_ =>
-        expect(expected.keySet == RecordGenerators.expectedAttributes(record))
-      )
+      fixture.orders
+        .savePricedOrder(record)
+        .map(_ => expect(expected.keySet == RecordGenerators.expectedAttributes(record)))
     }
   }
 

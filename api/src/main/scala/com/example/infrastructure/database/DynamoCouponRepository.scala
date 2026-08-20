@@ -12,16 +12,22 @@ final case class DynamoCouponRepository[F[_]: Async](client: DynamoDB[F], tableN
     extends CouponsRepository[F]
     with BaseDynamoDB[CouponRecord] {
 
+  override val keyAttribute: AttributeName = AttributeName("couponCode")
+
   override def encodeRecord(record: CouponRecord): DynamoRecord = Map(
-    DynamoSchema.CouponCode -> AttributeValue.s(StringAttributeValue(record.code)),
+    keyAttribute -> AttributeValue.s(StringAttributeValue(record.code)),
     AttributeName("discountPercent") -> AttributeValue.n(
       NumberAttributeValue(record.discountPercent.toString)
     ),
     AttributeName("minOrderAmount") -> AttributeValue.n(
       NumberAttributeValue(record.minOrderAmount.toString)
     ),
-    AttributeName("usageLimit") -> AttributeValue.n(NumberAttributeValue(record.usageLimit.toString)),
-    AttributeName("usageCount") -> AttributeValue.n(NumberAttributeValue(record.usageCount.toString)),
+    AttributeName("usageLimit") -> AttributeValue.n(
+      NumberAttributeValue(record.usageLimit.toString)
+    ),
+    AttributeName("usageCount") -> AttributeValue.n(
+      NumberAttributeValue(record.usageCount.toString)
+    ),
     AttributeName("expiresAt") -> AttributeValue.s(StringAttributeValue(record.expiresAt)),
     AttributeName("stackableWithTier") -> AttributeValue.bool(
       BooleanAttributeValue(record.stackableWithTiers)
@@ -30,7 +36,7 @@ final case class DynamoCouponRepository[F[_]: Async](client: DynamoDB[F], tableN
 
   override def decodeRecord(record: DynamoRecord): Option[CouponRecord] = {
     for {
-      code <- record.get(DynamoSchema.CouponCode).flatMap(_.project.s).map(_.value)
+      code <- record.get(keyAttribute).flatMap(_.project.s).map(_.value)
       percentage <- record
         .get(AttributeName("discountPercent"))
         .flatMap(_.project.n)
@@ -65,7 +71,7 @@ final case class DynamoCouponRepository[F[_]: Async](client: DynamoDB[F], tableN
 
   override def couponByCouponCode(code: CouponCode): F[Option[CouponRecord]] = {
     val key = Map(
-      DynamoSchema.CouponCode -> AttributeValue.s(StringAttributeValue(code.value))
+      keyAttribute -> AttributeValue.s(StringAttributeValue(code.value))
     )
 
     client.getItem(tableName, key).map(_.item.flatMap(decodeRecord))

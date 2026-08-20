@@ -1,8 +1,7 @@
 package com.example.infrastructure.configuration
 
-import cats.effect.Async
 import cats.syntax.all.*
-import ciris.{ConfigValue, env}
+import ciris.{ConfigDecoder, ConfigValue, Effect, env}
 import ciris.http4s.*
 import com.amazonaws.dynamodb.TableArn
 import com.comcast.ip4s.{Host, Port, ipv4, port}
@@ -17,6 +16,14 @@ final case class AppConfig(
 
 object AppConfig {
 
+  private val endpointDecoder: ConfigDecoder[String, Uri] =
+    ConfigDecoder[String, Uri].collect("absolute HTTP(S) URI") {
+      case uri
+          if uri.host.exists(_.value.nonEmpty) && uri.scheme
+            .exists(scheme => scheme == Uri.Scheme.http || scheme == Uri.Scheme.https) =>
+        uri
+    }
+
   final case class DynamoTables(
       couponsTableName: TableArn,
       customersTableName: TableArn,
@@ -25,7 +32,7 @@ object AppConfig {
 
   final case class AwsConfig(
       region: AwsRegion,
-      url: Option[Uri],
+      url: Uri,
       token: AwsCredentials
   )
 
@@ -34,18 +41,20 @@ object AppConfig {
       port: Port
   )
 
-  def config[F[_]: Async]: ConfigValue[F, AppConfig] =
+  private[configuration] type ConfigSource = String => ConfigValue[Effect, String]
+
+  private[configuration] def configFrom(source: ConfigSource): ConfigValue[Effect, AppConfig] =
     (
-      env("SERVICE_PORT").as[Port],
-      env("SERVICE_HOST").as[Host],
-      env("ORDERS_TABLE_NAME").as[String],
-      env("CUSTOMERS_TABLE_NAME").as[String],
-      env("COUPONS_TABLE_NAME").as[String],
-      env("AWS_DEFAULT_REGION").as[String],
-      env("AWS_ENDPOINT_URL").as[String].option,
-      env("AWS_ACCESS_KEY_ID").as[String].secret,
-      env("AWS_SECRET_ACCESS_KEY").as[String].secret,
-      env("AWS_SESSION_TOKEN").as[String].option.secret
+      source("SERVICE_PORT").as[Port],
+      source("SERVICE_HOST").as[Host],
+      source("ORDERS_TABLE_NAME").as[String],
+      source("CUSTOMERS_TABLE_NAME").as[String],
+      source("COUPONS_TABLE_NAME").as[String],
+      source("AWS_DEFAULT_REGION").as[String],
+      source("AWS_ENDPOINT_URL").as[Uri](using endpointDecoder),
+      source("AWS_ACCESS_KEY_ID").as[String].secret,
+      source("AWS_SECRET_ACCESS_KEY").as[String].secret,
+      source("AWS_SESSION_TOKEN").as[String].option.secret
     ).parMapN {
       (
           port,
@@ -62,7 +71,7 @@ object AppConfig {
         AppConfig(
           aws = AwsConfig(
             region = AwsRegion(awsRegion),
-            url = awsUrl.flatMap(Uri.fromString(_).toOption),
+            url = awsUrl,
             token = AwsCredentials
               .Default(
                 accessKeyId = awsAccessKey.value,
@@ -78,4 +87,7 @@ object AppConfig {
           http = HttpConfig(host = host, port = port)
         )
     }
+
+  def config: ConfigValue[Effect, AppConfig] =
+    configFrom(name => env(name))
 }

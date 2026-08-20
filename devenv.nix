@@ -1,6 +1,7 @@
 {
   pkgs,
   lib,
+  config,
   ...
 }: let
   compose = "docker compose -f deployment/docker-compose.yml";
@@ -41,8 +42,17 @@ in {
   };
 
   enterShell = ''
-    export DOCKER_SOCK="''${DOCKER_SOCK:-''${XDG_RUNTIME_DIR:-/run/user/$UID}/podman/podman.sock}"
-    export DOCKER_HOST="''${DOCKER_HOST:-unix://$DOCKER_SOCK}"
+    ${
+      if pkgs.stdenv.isDarwin
+      then ''
+        export DOCKER_HOST="''${DOCKER_HOST:-unix://$HOME/.colima/default/docker.sock}"
+      ''
+      else ''
+        export DOCKER_SOCK="''${DOCKER_SOCK:-''${XDG_RUNTIME_DIR:-/run/user/$UID}/podman/podman.sock}"
+        export DOCKER_HOST="''${DOCKER_HOST:-unix://$DOCKER_SOCK}"
+      ''
+    }
+    export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE="''${TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE:-/var/run/docker.sock}"
   '';
 
   scripts = {
@@ -53,7 +63,7 @@ in {
     deployment-destroy-local.exec = "npm --prefix deployment run destroy:local";
   };
 
-  processes = {
+  processes = lib.optionalAttrs (!config.devenv.isTesting) {
     localstack = {
       exec = "${compose} up localstack";
       ready = {
@@ -77,6 +87,6 @@ in {
     sbt --script-version
     node --version
     npm --version
-    deployment/node_modules/.bin/cdklocal --version
+    sbt "core/test" "api/test" "apiIntegration/test"
   '';
 }

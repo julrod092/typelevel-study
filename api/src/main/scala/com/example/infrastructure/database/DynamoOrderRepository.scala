@@ -11,6 +11,8 @@ final case class DynamoOrderRepository[F[_]: Async](client: DynamoDB[F], tableNa
     extends OrdersRepository[F]
     with BaseDynamoDB[OrderRecord] {
 
+  override val keyAttribute: AttributeName = AttributeName("orderId")
+
   private def encodeLineItems(item: LineItemRecord): AttributeValue = AttributeValue.m(
     Map(
       AttributeName("sku") -> AttributeValue.s(StringAttributeValue(item.sku)),
@@ -41,7 +43,7 @@ final case class DynamoOrderRepository[F[_]: Async](client: DynamoDB[F], tableNa
 
   override def encodeRecord(record: OrderRecord): DynamoRecord = {
     val mandatoryValues = Map(
-      DynamoSchema.OrderId -> AttributeValue.s(StringAttributeValue(record.orderId)),
+      keyAttribute -> AttributeValue.s(StringAttributeValue(record.orderId)),
       AttributeName("customerId") -> AttributeValue.s(StringAttributeValue(record.customerId)),
       AttributeName("status") -> AttributeValue.s(StringAttributeValue(record.status)),
       AttributeName("items") -> AttributeValue.l(record.items.map(encodeLineItems)),
@@ -63,7 +65,7 @@ final case class DynamoOrderRepository[F[_]: Async](client: DynamoDB[F], tableNa
 
   override def decodeRecord(record: DynamoRecord): Option[OrderRecord] =
     for {
-      orderId <- record.get(DynamoSchema.OrderId).flatMap(_.project.s).map(_.value)
+      orderId <- record.get(keyAttribute).flatMap(_.project.s).map(_.value)
       customerId <- record.get(AttributeName("customerId")).flatMap(_.project.s).map(_.value)
       status <- record.get(AttributeName("status")).flatMap(_.project.s).map(_.value)
       encodedItems <- record.get(AttributeName("items")).flatMap(_.project.l)
@@ -83,8 +85,8 @@ final case class DynamoOrderRepository[F[_]: Async](client: DynamoDB[F], tableNa
       couponCode <- record
         .get(AttributeName("couponCode"))
         .fold[Option[Option[String]]](Some(None))(
-        _.project.s.map(value => Some(value.value))
-      )
+          _.project.s.map(value => Some(value.value))
+        )
       createdAt <- record.get(AttributeName("createdAt")).flatMap(_.project.s).map(_.value)
       updatedAt <- record.get(AttributeName("updatedAt")).flatMap(_.project.s).map(_.value)
     } yield OrderRecord(

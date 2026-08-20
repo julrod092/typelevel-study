@@ -13,11 +13,12 @@ object RecordGenerators {
   given Show[CouponRecord] = Show.fromToString
   given Show[OrderRecord] = Show.fromToString
   given Show[TableArn] = Show.show(_.value)
-  given Show[Throwable] = Show.show(error => Option(error.getMessage).getOrElse(error.getClass.getName))
+  given Show[Throwable] =
+    Show.show(error => Option(error.getMessage).getOrElse(error.getClass.getName))
 
   val lineItemRecord: Gen[LineItemRecord] = for {
     generatedSku <- DomainGenerators.nonEmptyString
-    quantity <- DomainGenerators.positiveQuantity
+    quantity <- DomainGenerators.customerLineItem.map(_.quantity)
     unitPrice <- DomainGenerators.positiveAmount
   } yield LineItemRecord(generatedSku, quantity, unitPrice, unitPrice * quantity)
 
@@ -93,7 +94,7 @@ object RecordGenerators {
   } yield record.copy(
     items = items,
     subtotal = subtotal,
-    discountAmount = DomainGenerators.noDiscount,
+    discountAmount = BigDecimal(0),
     total = subtotal
   )
 
@@ -108,7 +109,7 @@ object RecordGenerators {
     record.productElementNames
       .zip(record.productIterator)
       .collect {
-        case (name, value: Option[?]) if value.nonEmpty => AttributeName(name)
+        case (name, value: Option[?]) if value.nonEmpty      => AttributeName(name)
         case (name, value) if !value.isInstanceOf[Option[?]] => AttributeName(name)
       }
       .toSet

@@ -11,17 +11,17 @@ import com.example.infrastructure.database.{
   DynamoOrderRepository
 }
 import com.example.infrastructure.routes.Routes
-import org.http4s.Uri
+import org.http4s.{HttpApp, Uri}
 import org.http4s.client.Client
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits.*
+import org.http4s.server.Server
 import org.http4s.server.middleware.Logger
 import smithy4s.{Endpoint, Hints}
 import smithy4s.aws.{AwsClient, AwsEnvironment, Timestamp}
 import com.comcast.ip4s.ipv4
 import com.comcast.ip4s.port
-
 
 final case class PricingEnvironment[F[_]](
     customers: CustomersRepository[F],
@@ -55,12 +55,6 @@ object Configuration {
   def dynamoClient[F[_]: Async](config: AppConfig.AwsConfig): Resource[F, DynamoDB[F]] =
     for {
       client <- EmberClientBuilder.default[F].withoutCheckEndpointAuthentication.build
-      awsUrl <- Resource.eval[F, Uri](
-        config.url
-          .fold[F[Uri]](Async[F].raiseError(new IllegalArgumentException("Invalid Aws Uri")))(uri =>
-            Async[F].pure(uri)
-          )
-      )
       awsEnvironment = AwsEnvironment
         .make[F](
           client = client,
@@ -68,7 +62,7 @@ object Configuration {
           creds = Async[F].pure(config.token),
           time = Async[F].realTime.map(duration => Timestamp.fromEpochMilli(duration.toMillis))
         )
-        .withMiddleware(localStackMiddleware[F](awsUrl))
+        .withMiddleware(localStackMiddleware[F](config.url))
       dynamoClient <- AwsClient(DynamoDB.service, awsEnvironment)
     } yield dynamoClient
 
@@ -81,18 +75,28 @@ object Configuration {
       orders = DynamoOrderRepository[F](client, config.tables.ordersTableName)
     )
 
+  def httpApp[F[_]: Async](environment: PricingEnvironment[F]): Resource[F, HttpApp[F]] =
+    Routes
+      .impl[F](environment)
+      .map(routes => Logger.httpApp(logHeaders = true, logBody = true)(routes.orNotFound))
+
+  def server[F[_]: Async](
+      config: AppConfig.HttpConfig,
+      app: HttpApp[F]
+  ): Resource[F, Server] =
+    EmberServerBuilder
+      .default[F]
+      .withHost(config.host)
+      .withPort(config.port)
+      .withHttpApp(app)
+      .build
+
   def service[F[_]: Async]: Resource[F, Unit] = {
     for {
       config <- AppConfig.config.resource[F]
       env <- environment[F](config)
-      routes <- Routes.impl[F](env)
-      finalHttpApp = Logger.httpApp(logHeaders = true, logBody = true)(routes.orNotFound)
-      _ <- EmberServerBuilder
-        .default[F]
-        .withHost(config.http.host)
-        .withPort(config.http.port)
-        .withHttpApp(finalHttpApp)
-        .build
+      app <- httpApp[F](env)
+      _ <- server[F](config.http, app)
     } yield ()
   }
 }

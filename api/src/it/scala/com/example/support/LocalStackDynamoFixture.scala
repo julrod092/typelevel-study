@@ -5,8 +5,11 @@ import cats.effect.std.UUIDGen
 import cats.syntax.all.*
 import com.amazonaws.dynamodb.{DynamoDB, TableArn}
 import com.example.infrastructure.configuration.{AppConfig, Configuration}
-import com.example.infrastructure.database.{DynamoCouponRepository, DynamoCustomerRepository, DynamoOrderRepository}
-import com.example.infrastructure.database.DynamoSchema
+import com.example.infrastructure.database.{
+  DynamoCouponRepository,
+  DynamoCustomerRepository,
+  DynamoOrderRepository
+}
 import org.http4s.Uri
 import org.testcontainers.localstack.LocalStackContainer
 import org.testcontainers.utility.DockerImageName
@@ -28,16 +31,16 @@ object LocalStackDynamoFixture {
       .fromAutoCloseable(
         IO.blocking {
           val localStack = new LocalStackContainer(image).withServices("dynamodb")
-          sys.env.get("LOCALSTACK_AUTH_TOKEN").fold(localStack)(token =>
-            localStack.withEnv("LOCALSTACK_AUTH_TOKEN", token)
-          )
+          sys.env
+            .get("LOCALSTACK_AUTH_TOKEN")
+            .fold(localStack)(token => localStack.withEnv("LOCALSTACK_AUTH_TOKEN", token))
         }
       )
       .evalTap(container => IO.blocking(container.start()))
     endpoint <- Resource.eval(IO.fromEither(Uri.fromString(container.getEndpoint.toString)))
     awsConfig = AppConfig.AwsConfig(
       region = AwsRegion(container.getRegion),
-      url = Some(endpoint),
+      url = endpoint,
       token = AwsCredentials.Default(
         accessKeyId = container.getAccessKey,
         secretAccessKey = container.getSecretKey,
@@ -46,18 +49,21 @@ object LocalStackDynamoFixture {
     )
     client <- Configuration.dynamoClient[IO](awsConfig)
     tables <- Resource.eval(uniqueTables)
+    customers = DynamoCustomerRepository[IO](client, tables.customersTableName)
+    coupons = DynamoCouponRepository[IO](client, tables.couponsTableName)
+    orders = DynamoOrderRepository[IO](client, tables.ordersTableName)
     _ <- Resource.eval(
       List(
-        tables.customersTableName -> DynamoSchema.CustomerId.value,
-        tables.couponsTableName -> DynamoSchema.CouponCode.value,
-        tables.ordersTableName -> DynamoSchema.OrderId.value
+        tables.customersTableName -> customers.keyAttribute.value,
+        tables.couponsTableName -> coupons.keyAttribute.value,
+        tables.ordersTableName -> orders.keyAttribute.value
       ).traverse_ { case (table, key) => DynamoTestSupport.createTable(client, table, key) }
     )
   } yield DynamoFixture(
     client = client,
-    customers = DynamoCustomerRepository[IO](client, tables.customersTableName),
-    coupons = DynamoCouponRepository[IO](client, tables.couponsTableName),
-    orders = DynamoOrderRepository[IO](client, tables.ordersTableName),
+    customers = customers,
+    coupons = coupons,
+    orders = orders,
     tables = tables
   )
 

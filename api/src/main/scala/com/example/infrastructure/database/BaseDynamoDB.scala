@@ -7,6 +7,8 @@ trait BaseDynamoDB[T <: RepositoryRecord] {
 
   type DynamoRecord = Map[AttributeName, AttributeValue]
 
+  val keyAttribute: AttributeName
+
   def encodeRecord(record: T): DynamoRecord
   def decodeRecord(record: DynamoRecord): Option[T]
 }
