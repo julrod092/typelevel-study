@@ -18,7 +18,7 @@ lazy val api = (project in file("api"))
     Compile / run / connectInput := true,
     smithy4sAwsSpecEntries ++= Seq(AWS.dynamodb)
   )
-  .dependsOn(core)
+  .dependsOn(core % "compile->compile;test->test")
 
 lazy val apiIntegration = (project in file("api-integration"))
   .settings(commonSettings)
@@ -31,7 +31,7 @@ lazy val apiIntegration = (project in file("api-integration"))
     Test / parallelExecution := false,
     publish / skip := true
   )
-  .dependsOn(api)
+  .dependsOn(api % "compile->compile;test->test")
 
 lazy val eventHandler = (project in file("event-handler"))
   .settings(commonSettings)

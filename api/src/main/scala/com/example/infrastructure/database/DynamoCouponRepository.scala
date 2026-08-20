@@ -2,41 +2,51 @@ package com.example.infrastructure.database
 
 import cats.effect.Async
 import cats.syntax.all.*
-import com.amazonaws.dynamodb.{
-  AttributeName,
-  AttributeValue,
-  DynamoDB,
-  StringAttributeValue,
-  TableArn
-}
+import com.amazonaws.dynamodb.*
 import com.example.domain.models.Coupon.CouponCode
-import com.example.domain.repositories.{
-  CouponRecord,
-  CouponsRepository,
-  CustomerRecord,
-  CustomersRepository
-}
-import com.example.infrastructure.configuration.AppConfig
+import com.example.domain.repositories.{CouponRecord, CouponsRepository}
+
+import scala.util.Try
 
 final case class DynamoCouponRepository[F[_]: Async](client: DynamoDB[F], tableName: TableArn)
     extends CouponsRepository[F]
     with BaseDynamoDB[CouponRecord] {
 
-  override def encodeRecord(record: CouponRecord): DynamoRecord = ???
+  override def encodeRecord(record: CouponRecord): DynamoRecord = Map(
+    DynamoSchema.CouponCode -> AttributeValue.s(StringAttributeValue(record.code)),
+    AttributeName("discountPercent") -> AttributeValue.n(
+      NumberAttributeValue(record.discountPercent.toString)
+    ),
+    AttributeName("minOrderAmount") -> AttributeValue.n(
+      NumberAttributeValue(record.minOrderAmount.toString)
+    ),
+    AttributeName("usageLimit") -> AttributeValue.n(NumberAttributeValue(record.usageLimit.toString)),
+    AttributeName("usageCount") -> AttributeValue.n(NumberAttributeValue(record.usageCount.toString)),
+    AttributeName("expiresAt") -> AttributeValue.s(StringAttributeValue(record.expiresAt)),
+    AttributeName("stackableWithTier") -> AttributeValue.bool(
+      BooleanAttributeValue(record.stackableWithTiers)
+    )
+  )
 
   override def decodeRecord(record: DynamoRecord): Option[CouponRecord] = {
     for {
-      code <- record.get(AttributeName("couponCode")).flatMap(_.project.s).map(_.value)
+      code <- record.get(DynamoSchema.CouponCode).flatMap(_.project.s).map(_.value)
       percentage <- record
-        .get(AttributeName("discountPercentage"))
+        .get(AttributeName("discountPercent"))
         .flatMap(_.project.n)
-        .map(_.value)
+        .flatMap(_.value.toIntOption)
       minOrderAmount <- record
         .get(AttributeName("minOrderAmount"))
         .flatMap(_.project.n)
-        .map(_.value)
-      limit <- record.get(AttributeName("usageLimit")).flatMap(_.project.n).map(_.value)
-      count <- record.get(AttributeName("usageCount")).flatMap(_.project.n).map(_.value)
+        .flatMap(value => Try(BigDecimal(value.value)).toOption)
+      limit <- record
+        .get(AttributeName("usageLimit"))
+        .flatMap(_.project.n)
+        .flatMap(_.value.toIntOption)
+      count <- record
+        .get(AttributeName("usageCount"))
+        .flatMap(_.project.n)
+        .flatMap(_.value.toIntOption)
       expiration <- record.get(AttributeName("expiresAt")).flatMap(_.project.s).map(_.value)
       stackableWithTier <- record
         .get(AttributeName("stackableWithTier"))
@@ -44,10 +54,10 @@ final case class DynamoCouponRepository[F[_]: Async](client: DynamoDB[F], tableN
         .map(_.value)
     } yield CouponRecord(
       code = code,
-      discountPercent = percentage.toInt,
-      minOrderAmount = BigDecimal(minOrderAmount),
-      usageLimit = limit.toInt,
-      usageCount = count.toInt,
+      discountPercent = percentage,
+      minOrderAmount = minOrderAmount,
+      usageLimit = limit,
+      usageCount = count,
       expiresAt = expiration,
       stackableWithTiers = stackableWithTier
     )
@@ -55,12 +65,9 @@ final case class DynamoCouponRepository[F[_]: Async](client: DynamoDB[F], tableN
 
   override def couponByCouponCode(code: CouponCode): F[Option[CouponRecord]] = {
     val key = Map(
-      AttributeName("couponCode") -> AttributeValue.s(StringAttributeValue(code.value))
+      DynamoSchema.CouponCode -> AttributeValue.s(StringAttributeValue(code.value))
     )
 
-    client
-      .getItem(tableName, key)
-      .attempt
-      .map(_.toOption.flatMap(_.item.flatMap(decodeRecord)))
+    client.getItem(tableName, key).map(_.item.flatMap(decodeRecord))
   }
 }

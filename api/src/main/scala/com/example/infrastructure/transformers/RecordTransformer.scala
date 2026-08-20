@@ -45,8 +45,8 @@ object RecordTransformer {
       .withFieldComputed(_.status, value => value.status.toString)
       .withFieldComputed(_.items, value => value.items.map(_.transformInto[LineItemRecord]))
       .withFieldComputed(_.couponCode, _.couponCode.map(_.value))
-      .withFieldComputed(_.createdAt, _.toString)
-      .withFieldComputed(_.updatedAt, _.toString)
+      .withFieldComputed(_.createdAt, _.createdAt.toString)
+      .withFieldComputed(_.updatedAt, _.updatedAt.toString)
       .buildTransformer
 
   given Transformer[CustomerRecord, Customer] =

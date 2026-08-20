@@ -42,7 +42,7 @@ object OrderPriceService {
       else DomainError.CouponExpirationError("Coupon Expired", coupon.code).invalidNec
 
     val validateUsage: ValidatedNec[DomainError, Boolean] =
-      if (coupon.usageCount <= coupon.usageLimit) true.validNec
+      if (coupon.usageCount < coupon.usageLimit) true.validNec
       else DomainError.CouponLimitReached("Coupon uses passed its limit", coupon.code).invalidNec
 
     val isStackableWithTier: ValidatedNec[DomainError, Boolean] =
@@ -77,8 +77,9 @@ object OrderPriceService {
       validateExpiration,
       validateUsage,
       isStackableWithTier,
-      isMinAmount
-    ).mapN { (_, _, _, _) => coupon }
+      isMinAmount,
+      isValidDiscountPercent
+    ).mapN { (_, _, _, _, _) => coupon }
   }
 
   def createOrder(
@@ -93,22 +94,25 @@ object OrderPriceService {
       .traverse(priceLineItem)
       .andThen { items =>
         val subtotal: BigDecimal = items.map(_.lineTotal).sum
-        val validatedCoupon: Option[Coupon] =
-          coupon.flatMap(value => validateCoupon(value, customer, subtotal, now).toOption)
-        val discountAmount: BigDecimal =
-          validatedCoupon.map(value => subtotal * (value.discountPercent / 100)).getOrElse(0)
-        Order(
-          orderId = orderId,
-          customerId = customerOrder.customerId,
-          status = OrderStatus.InProgress,
-          items = items,
-          subtotal = subtotal,
-          discountAmount = discountAmount,
-          total = subtotal - discountAmount,
-          couponCode = validatedCoupon.map(_.code),
-          createdAt = now,
-          updatedAt = now
-        ).validNec
+
+        coupon.traverse(validateCoupon(_, customer, subtotal, now)).map { validatedCoupon =>
+          val discountAmount: BigDecimal = validatedCoupon
+            .map(value => subtotal * BigDecimal(value.discountPercent) / 100)
+            .getOrElse(0)
+
+          Order(
+            orderId = orderId,
+            customerId = customerOrder.customerId,
+            status = OrderStatus.InProgress,
+            items = items,
+            subtotal = subtotal,
+            discountAmount = discountAmount,
+            total = subtotal - discountAmount,
+            couponCode = validatedCoupon.map(_.code),
+            createdAt = now,
+            updatedAt = now
+          )
+        }
       }
   }
 }

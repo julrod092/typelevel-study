@@ -52,11 +52,11 @@ object Configuration {
           }
     }
 
-  private def environment[F[_]: Async](config: AppConfig): Resource[F, PricingEnvironment[F]] =
+  def dynamoClient[F[_]: Async](config: AppConfig.AwsConfig): Resource[F, DynamoDB[F]] =
     for {
       client <- EmberClientBuilder.default[F].withoutCheckEndpointAuthentication.build
       awsUrl <- Resource.eval[F, Uri](
-        config.aws.url
+        config.url
           .fold[F[Uri]](Async[F].raiseError(new IllegalArgumentException("Invalid Aws Uri")))(uri =>
             Async[F].pure(uri)
           )
@@ -64,17 +64,21 @@ object Configuration {
       awsEnvironment = AwsEnvironment
         .make[F](
           client = client,
-          awsRegion = Async[F].pure(config.aws.region),
-          creds = Async[F].pure(config.aws.token),
+          awsRegion = Async[F].pure(config.region),
+          creds = Async[F].pure(config.token),
           time = Async[F].realTime.map(duration => Timestamp.fromEpochMilli(duration.toMillis))
         )
         .withMiddleware(localStackMiddleware[F](awsUrl))
       dynamoClient <- AwsClient(DynamoDB.service, awsEnvironment)
-      config <- AppConfig.config.resource[F]
+    } yield dynamoClient
+
+  def environment[F[_]: Async](config: AppConfig): Resource[F, PricingEnvironment[F]] =
+    for {
+      client <- dynamoClient[F](config.aws)
     } yield PricingEnvironment(
-      customers = DynamoCustomerRepository[F](dynamoClient, config.tables.customersTableName),
-      coupons = DynamoCouponRepository[F](dynamoClient, config.tables.couponsTableName),
-      orders = DynamoOrderRepository[F](dynamoClient, config.tables.ordersTableName)
+      customers = DynamoCustomerRepository[F](client, config.tables.customersTableName),
+      coupons = DynamoCouponRepository[F](client, config.tables.couponsTableName),
+      orders = DynamoOrderRepository[F](client, config.tables.ordersTableName)
     )
 
   def service[F[_]: Async]: Resource[F, Unit] = {
