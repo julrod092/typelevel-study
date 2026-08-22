@@ -7,7 +7,7 @@ import com.example.support.{PricingEnvironmentStub, RepositoryCalls}
 import fs2.text
 import io.circe.Json
 import org.http4s.Method.POST
-import org.http4s.Status.{BadRequest, NotFound, Ok, UnprocessableEntity}
+import org.http4s.Status.{BadRequest, InternalServerError, NotFound, Ok, UnprocessableEntity}
 import org.http4s.circe.CirceEntityCodec.*
 import org.http4s.implicits.*
 import org.http4s.{Request, Response}
@@ -204,6 +204,30 @@ object PriceHttpContractSuite extends SimpleIOSuite {
           expect(calls.customerIds.map(_.value) == List(customer.customerId)) and
           expect(calls.couponCodes.map(_.value) == List("SAVE10")) and
           expect(calls.savedOrders.isEmpty)
+      }
+    } yield result
+  }
+
+  test("When saving a priced order fails, the public endpoint returns the modeled 500 error") {
+    for {
+      stub <- PricingEnvironmentStub.create(
+        customerResult = Some(customer),
+        saveError = Some(new RuntimeException("DynamoDB unavailable"))
+      )
+      result <- Configuration.httpApp[IO](stub.environment).use { app =>
+        for {
+          response <- app.run(priceRequest(customer.customerId))
+          body <- response.as[Json]
+          calls <- stub.calls.get
+        } yield expect(response.status == InternalServerError) and
+          expect(body.hcursor.get[String]("code").toOption.contains("500")) and
+          expect(
+            body.hcursor
+              .get[String]("message")
+              .toOption
+              .contains("Error storing order, please try again later.")
+          ) and
+          expect(calls.savedOrders.size == 1)
       }
     } yield result
   }

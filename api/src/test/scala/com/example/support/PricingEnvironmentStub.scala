@@ -1,7 +1,8 @@
 package com.example.support
 
 import cats.effect.IO
-import cats.effect.kernel.Ref
+import cats.effect.kernel.{Clock, Ref}
+import cats.effect.std.UUIDGen
 import cats.syntax.all.*
 import com.example.domain.models.{Coupon, Customer}
 import com.example.domain.repositories.*
@@ -22,7 +23,8 @@ object PricingEnvironmentStub {
 
   def create(
       customerResult: Option[CustomerRecord],
-      couponResult: Option[CouponRecord] = None
+      couponResult: Option[CouponRecord] = None,
+      saveError: Option[Throwable] = None
   ): IO[PricingEnvironmentStub] =
     Ref
       .of[IO, RepositoryCalls](RepositoryCalls(Nil, Nil, Nil))
@@ -45,11 +47,12 @@ object PricingEnvironmentStub {
         }
         val orders = new OrdersRepository[IO] {
           override def savePricedOrder(value: OrderRecord): IO[OrderRecord] =
-            calls.update(state => state.copy(savedOrders = state.savedOrders :+ value)).as(value)
+            calls.update(state => state.copy(savedOrders = state.savedOrders :+ value)) *>
+              saveError.fold(IO.pure(value))(IO.raiseError)
         }
 
         PricingEnvironmentStub(
-          environment = PricingEnvironment(customers, coupons, orders),
+          environment = PricingEnvironment(customers, coupons, orders, Clock[IO], UUIDGen[IO]),
           calls = calls
         )
       }

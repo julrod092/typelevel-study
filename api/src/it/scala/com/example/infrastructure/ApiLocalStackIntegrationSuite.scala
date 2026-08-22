@@ -1,6 +1,6 @@
 package com.example.infrastructure
 
-import cats.effect.IO
+import cats.effect.{Clock, IO}
 import com.amazonaws.dynamodb.{AttributeValue, StringAttributeValue}
 import com.example.domain.repositories.CustomerRecord
 import com.example.infrastructure.configuration.{Configuration, PricingEnvironment}
@@ -26,7 +26,9 @@ object ApiLocalStackIntegrationSuite extends DynamoIntegrationSuite {
     val environment = PricingEnvironment(
       customers = fixture.customers,
       coupons = fixture.coupons,
-      orders = fixture.orders
+      orders = fixture.orders,
+      clock = fixture.clock,
+      idGenerator = fixture.idGenerator
     )
     val requestBody = Json.obj(
       "customerId" -> Json.fromString(customer.customerId),
@@ -66,7 +68,7 @@ object ApiLocalStackIntegrationSuite extends DynamoIntegrationSuite {
             expect(
               body.hcursor.get[String]("customerId").toOption.contains(customer.customerId)
             ) and
-            expect(body.hcursor.get[String]("status").toOption.contains("InProgress")) and
+            expect(body.hcursor.get[String]("status").toOption.contains("Priced")) and
             expect(decimal(body, "subtotal").contains(BigDecimal("99.98"))) and
             expect(storedOrder.exists(_.orderId == orderId)) and
             expect(storedOrder.exists(_.customerId == customer.customerId)) and

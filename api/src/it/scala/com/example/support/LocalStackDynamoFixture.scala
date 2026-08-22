@@ -1,7 +1,8 @@
 package com.example.support
 
-import cats.effect.{IO, Resource}
+import cats.effect.kernel.Clock
 import cats.effect.std.UUIDGen
+import cats.effect.{IO, Resource}
 import cats.syntax.all.*
 import com.amazonaws.dynamodb.{DynamoDB, TableArn}
 import com.example.infrastructure.configuration.{AppConfig, Configuration}
@@ -20,7 +21,9 @@ final case class DynamoFixture(
     customers: DynamoCustomerRepository[IO],
     coupons: DynamoCouponRepository[IO],
     orders: DynamoOrderRepository[IO],
-    tables: AppConfig.DynamoTables
+    tables: AppConfig.DynamoTables,
+    clock: Clock[IO],
+    idGenerator: UUIDGen[IO]
 )
 
 object LocalStackDynamoFixture {
@@ -64,7 +67,9 @@ object LocalStackDynamoFixture {
     customers = customers,
     coupons = coupons,
     orders = orders,
-    tables = tables
+    tables = tables,
+    clock = Clock[IO],
+    idGenerator = UUIDGen[IO]
   )
 
   private def uniqueTables: IO[AppConfig.DynamoTables] =

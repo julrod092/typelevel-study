@@ -1,8 +1,8 @@
 package com.example.infrastructure.configuration
 
-import cats.effect.{Async, Resource}
+import cats.effect.std.UUIDGen
+import cats.effect.{Async, Clock, Resource}
 import cats.implicits.*
-import cats.syntax.all.*
 import com.amazonaws.dynamodb.DynamoDB
 import com.example.domain.repositories.{CouponsRepository, CustomersRepository, OrdersRepository}
 import com.example.infrastructure.database.{
@@ -11,22 +11,22 @@ import com.example.infrastructure.database.{
   DynamoOrderRepository
 }
 import com.example.infrastructure.routes.Routes
-import org.http4s.{HttpApp, Uri}
 import org.http4s.client.Client
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits.*
 import org.http4s.server.Server
 import org.http4s.server.middleware.Logger
-import smithy4s.{Endpoint, Hints}
+import org.http4s.{HttpApp, Uri}
 import smithy4s.aws.{AwsClient, AwsEnvironment, Timestamp}
-import com.comcast.ip4s.ipv4
-import com.comcast.ip4s.port
+import smithy4s.{Endpoint, Hints}
 
 final case class PricingEnvironment[F[_]](
     customers: CustomersRepository[F],
     coupons: CouponsRepository[F],
-    orders: OrdersRepository[F]
+    orders: OrdersRepository[F],
+    clock: Clock[F],
+    idGenerator: UUIDGen[F]
 )
 
 object Configuration {
@@ -72,7 +72,9 @@ object Configuration {
     } yield PricingEnvironment(
       customers = DynamoCustomerRepository[F](client, config.tables.customersTableName),
       coupons = DynamoCouponRepository[F](client, config.tables.couponsTableName),
-      orders = DynamoOrderRepository[F](client, config.tables.ordersTableName)
+      orders = DynamoOrderRepository[F](client, config.tables.ordersTableName),
+      clock = Clock[F],
+      idGenerator = UUIDGen[F]
     )
 
   def httpApp[F[_]: Async](environment: PricingEnvironment[F]): Resource[F, HttpApp[F]] =
