@@ -35,15 +35,16 @@ in {
     AWS_ENDPOINT_URL = lib.mkDefault "http://localhost:4566";
     AWS_ENDPOINT_URL_S3 = lib.mkDefault "http://s3.localhost.localstack.cloud:4566";
     SERVICE_HOST = lib.mkDefault "0.0.0.0";
-    SERVICE_PORT = lib.mkDefault "8080";
+    SERVICE_PORT = lib.mkDefault "8081";
     ORDERS_TABLE_NAME = lib.mkDefault "Orders";
     CUSTOMERS_TABLE_NAME = lib.mkDefault "Customers";
     COUPONS_TABLE_NAME = lib.mkDefault "Coupons";
+    TESTCONTAINERS_RYUK_DISABLED = lib.mkIf pkgs.stdenv.hostPlatform.isLinux true;
   };
 
   enterShell = ''
     ${
-      if pkgs.stdenv.isDarwin
+      if pkgs.stdenv.hostPlatform.isDarwin
       then ''
         export DOCKER_HOST="''${DOCKER_HOST:-unix://$HOME/.colima/default/docker.sock}"
       ''
@@ -76,9 +77,19 @@ in {
         timeout = 60;
       };
     };
+    dynamo-setup = {
+      exec = ''
+           deployment-install
+           deployment-deploy-local
+           npm --prefix deployment run seed:local
+      '';
+      after = [ "devenv:processes:localstack@ready" ];
+      restart.on = "never";
+    };
+
     typelevel = {
       exec = ''sbt "api/runMain com.example.Main"'';
-      after = [ "devenv:processes:localstack" ];
+      after = [ "devenv:processes:dynamo-setup@completed" ];
     };
   };
 

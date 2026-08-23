@@ -1,6 +1,6 @@
 # TypeLevel Requests
 
-POST http://localhost:8080/orders/price
+POST http://localhost:8081/orders/price
 
 {
   "customerId": "customer-1",

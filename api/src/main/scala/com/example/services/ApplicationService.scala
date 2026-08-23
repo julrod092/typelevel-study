@@ -36,28 +36,21 @@ object ApplicationService extends BaseService {
       .map(transformer.transform)
   }
 
-  private def validate[F[_]: Monad](value: CustomerOrder): Program[F, CustomerOrder] =
-    Kleisli { _ =>
-      EitherT.fromEither[F](
-        ValidationService.validate(value).toEither.leftMap(ErrorHandler.handleDomainErrors)
-      )
-    }
-
   private def price[F[_]: Monad](
       order: CustomerOrder,
       customer: Customer,
       coupon: Option[Coupon]
   ): Program[F, Order] =
     Kleisli { env =>
-      EitherT(for {
-        clock <- env.clock.realTimeInstant
-        uuid <- env.idGenerator.randomUUID.map(_.toString)
-      } yield {
-        OrderPriceService
+      EitherT(
+        for {
+          clock <- env.clock.realTimeInstant
+          uuid <- env.idGenerator.randomUUID.map(_.toString)
+        } yield OrderPriceService
           .createOrder(order, customer, coupon, Order.OrderId(uuid), clock)
           .toEither
           .leftMap(ErrorHandler.handleDomainErrors)
-      })
+      )
     }
 
   private def save[F[_]: Sync](order: Order): Program[F, OrderRecord] =
@@ -82,9 +75,13 @@ object ApplicationService extends BaseService {
   def createOrder[F[_]: Sync](
       dto: OrderPriceDTO
   ): Program[F, OrderPricedDTO] = {
-    val domainObj = dto.transformInto[CustomerOrder]
     for {
-      validation <- validate[F](domainObj)
+      domain <- Kleisli(_ => EitherT.pure[F, OrderPricingError](dto.transformInto[CustomerOrder]))
+      validation <- Kleisli { _ =>
+        EitherT.fromEither[F](
+          ValidationService.validate(domain).toEither.leftMap(ErrorHandler.handleDomainErrors)
+        )
+      }
       customer <- executeDB[F, Customer.CustomerId, CustomerRecord, Customer](
         validation.customerId
       )(_.customers.customerByCustomerId)

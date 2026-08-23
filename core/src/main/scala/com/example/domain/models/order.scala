@@ -3,7 +3,7 @@ package com.example.domain.models
 import java.time.Instant
 
 enum OrderStatus(value: String) {
-  case Priced extends OrderStatus("PRICED")
+  case PRICED extends OrderStatus("PRICED")
 }
 
 case class LineItem(

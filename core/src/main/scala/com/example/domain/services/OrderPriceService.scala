@@ -103,7 +103,7 @@ object OrderPriceService {
           Order(
             orderId = orderId,
             customerId = customerOrder.customerId,
-            status = OrderStatus.Priced,
+            status = OrderStatus.PRICED,
             items = items,
             subtotal = subtotal,
             discountAmount = discountAmount,
