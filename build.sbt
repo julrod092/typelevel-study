@@ -34,9 +34,11 @@ lazy val apiIntegration = (project in file("api-integration"))
   .dependsOn(api % "compile->compile;test->test")
 
 lazy val eventHandler = (project in file("event-handler"))
+  .enablePlugins(Smithy4sCodegenPlugin, AssemblyPlugin)
   .settings(commonSettings)
   .settings(
     name += "-event-handler",
-    libraryDependencies ++= Dependencies.eventHandler
+    libraryDependencies ++= Dependencies.eventHandler,
+    smithy4sAwsSpecEntries ++= Seq(AWS.kinesis)
   )
   .dependsOn(core)

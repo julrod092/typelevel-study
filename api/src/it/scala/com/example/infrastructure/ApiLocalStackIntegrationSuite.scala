@@ -68,7 +68,7 @@ object ApiLocalStackIntegrationSuite extends DynamoIntegrationSuite {
             expect(
               body.hcursor.get[String]("customerId").toOption.contains(customer.customerId)
             ) and
-            expect(body.hcursor.get[String]("status").toOption.contains("Priced")) and
+            expect(body.hcursor.get[String]("status").toOption.contains("PRICED")) and
             expect(decimal(body, "subtotal").contains(BigDecimal("99.98"))) and
             expect(storedOrder.exists(_.orderId == orderId)) and
             expect(storedOrder.exists(_.customerId == customer.customerId)) and
