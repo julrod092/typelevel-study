@@ -44,6 +44,8 @@ object PricingEnvironmentStub {
             calls
               .update(state => state.copy(couponCodes = state.couponCodes :+ value))
               .as(couponResult)
+
+          override def updateCouponUseByCoupon(value: CouponRecord): IO[CouponRecord] = IO.unit.map(_ => value)
         }
         val orders = new OrdersRepository[IO] {
           override def savePricedOrder(value: OrderRecord): IO[OrderRecord] =

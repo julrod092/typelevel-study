@@ -3,6 +3,7 @@ package com.example.infrastructure.database
 import cats.effect.Async
 import cats.syntax.all.*
 import com.amazonaws.dynamodb.*
+import com.example.domain.models.Coupon
 import com.example.domain.models.Coupon.CouponCode
 import com.example.domain.repositories.{CouponRecord, CouponsRepository}
 
@@ -69,11 +70,27 @@ final case class DynamoCouponRepository[F[_]: Async](client: DynamoDB[F], tableN
     )
   }
 
-  override def couponByCouponCode(code: CouponCode): F[Option[CouponRecord]] = {
-    val key = Map(
-      keyAttribute -> AttributeValue.s(StringAttributeValue(code.value))
-    )
+  override def couponByCouponCode(code: CouponCode): F[Option[CouponRecord]] =
+    client
+      .getItem(
+        tableName,
+        Map(keyAttribute -> AttributeValue.s(StringAttributeValue(code.value)))
+      )
+      .map(_.item.flatMap(decodeRecord))
 
-    client.getItem(tableName, key).map(_.item.flatMap(decodeRecord))
-  }
+  override def updateCouponUseByCoupon(coupon: CouponRecord): F[CouponRecord] =
+    client
+      .updateItem(
+        tableName = tableName,
+        key = Map(keyAttribute -> AttributeValue.s(StringAttributeValue(coupon.code))),
+        updateExpression = UpdateExpression("SET #usageCount = :usageCount").some,
+        expressionAttributeNames =
+          Map(ExpressionAttributeNameVariable("#usageCount") -> AttributeName("usageCount")).some,
+        expressionAttributeValues = Map(
+          ExpressionAttributeValueVariable(":usageCOunt") -> AttributeValue.n(
+            NumberAttributeValue(coupon.usageCount.toString)
+          )
+        ).some
+      )
+      .map(_ => coupon)
 }
