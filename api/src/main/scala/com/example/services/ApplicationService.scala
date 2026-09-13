@@ -2,26 +2,23 @@ package com.example.services
 
 import cats.Monad
 import cats.data.{EitherT, Kleisli}
-import cats.effect.{Clock, Sync}
-import cats.effect.std.UUIDGen
+import cats.effect.Async
 import cats.syntax.all.*
-import com.example.domain.models.{Coupon, Customer, CustomerOrder, DomainError, Order}
+import com.example.domain.models.{Coupon, Customer, CustomerOrder, Order}
 import com.example.domain.repositories.{CouponRecord, CustomerRecord, OrderRecord}
 import com.example.domain.services.{OrderPriceService, ValidationService}
 import com.example.infrastructure.configuration.PricingEnvironment
 import com.example.infrastructure.errors.ErrorHandler
 import com.example.infrastructure.transformers.ApiTransformer.given
 import com.example.infrastructure.transformers.RecordTransformer.given
+import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.dsl.*
 import pricing.*
 import pricing.PriceAPIOperation.OrderPricingError
-import io.scalaland.chimney.Transformer
-
-import java.time.Instant
 
 object ApplicationService extends BaseService {
 
-  private def executeDB[F[_]: Monad, A, T, X](
+  private def executeOptionDB[F[_]: Monad, A, T, X](
       value: A
   )(
       f: PricingEnvironment[F] => A => F[Option[T]]
@@ -36,7 +33,24 @@ object ApplicationService extends BaseService {
       .map(transformer.transform)
   }
 
-  private def price[F[_]: Monad](
+  private def executeMandatoryDB[F[_]: Monad, A, T, X](
+      value: A
+  )(f: PricingEnvironment[F] => A => F[T])(using
+      transformer: Transformer[T, X]
+  ): Program[F, X] = Kleisli { env =>
+    EitherT
+      .liftF(
+        f(env)(value)
+      )
+      .leftMap[OrderPricingError](_ =>
+        OrderPricingError.internalServerError(
+          InternalServerError("ERROR".some, "Error upserting record".some)
+        )
+      )
+      .map(transformer.transform)
+  }
+
+  private def priceOrder[F[_]: Monad](
       order: CustomerOrder,
       customer: Customer,
       coupon: Option[Coupon]
@@ -53,26 +67,20 @@ object ApplicationService extends BaseService {
       )
     }
 
-  private def save[F[_]: Sync](order: Order): Program[F, OrderRecord] =
-    Kleisli { env =>
-      EitherT(
-        env.orders
-          .savePricedOrder(order.transformInto[OrderRecord])
-          .attempt
-          .map(
-            _.leftMap[OrderPricingError](_ =>
-              OrderPricingError.internalServerError(
-                InternalServerError(
-                  "500".some,
-                  "Error storing order, please try again later.".some
-                )
-              )
-            )
-          )
+  private def upsert[F[_]: Monad](order: Order, coupon: Option[Coupon]): Program[F, Order] =
+    for {
+      orderSaveResult <- executeMandatoryDB[F, OrderRecord, OrderRecord, Order](
+        order.transformInto[OrderRecord]
+      )(_.orders.savePricedOrder)
+      couponUsageUpdate = coupon.map(c => c.copy(usageCount = c.usageCount + 1))
+      _ <- coupon.traverse(c =>
+        executeMandatoryDB[F, CouponRecord, CouponRecord, Coupon](c.transformInto[CouponRecord])(
+          _.coupons.updateCouponUseByCoupon
+        )
       )
-    }
+    } yield orderSaveResult
 
-  def createOrder[F[_]: Sync](
+  def createOrder[F[_]: Async](
       dto: OrderPriceDTO
   ): Program[F, OrderPricedDTO] = {
     for {
@@ -82,14 +90,14 @@ object ApplicationService extends BaseService {
           ValidationService.validate(domain).toEither.leftMap(ErrorHandler.handleDomainErrors)
         )
       }
-      customer <- executeDB[F, Customer.CustomerId, CustomerRecord, Customer](
+      customer <- executeOptionDB[F, Customer.CustomerId, CustomerRecord, Customer](
         validation.customerId
       )(_.customers.customerByCustomerId)
       coupon <- validation.couponCode.traverse(
-        executeDB[F, Coupon.CouponCode, CouponRecord, Coupon](_)(_.coupons.couponByCouponCode)
+        executeOptionDB[F, Coupon.CouponCode, CouponRecord, Coupon](_)(_.coupons.couponByCouponCode)
       )
-      result <- price[F](validation, customer, coupon)
-      _ <- save[F](result)
+      result <- priceOrder[F](validation, customer, coupon)
+      _ <- upsert[F](result, coupon)
     } yield result.transformInto[OrderPricedDTO]
   }
 }
