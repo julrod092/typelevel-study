@@ -39,7 +39,7 @@ in {
     ORDERS_TABLE_NAME = lib.mkDefault "Orders";
     CUSTOMERS_TABLE_NAME = lib.mkDefault "Customers";
     COUPONS_TABLE_NAME = lib.mkDefault "Coupons";
-    TESTCONTAINERS_RYUK_DISABLED = lib.mkIf pkgs.stdenv.hostPlatform.isLinux true;
+    TESTCONTAINERS_RYUK_DISABLED = if (pkgs.stdenv.hostPlatform.isLinux) then true else false;
   };
 
   enterShell = ''
