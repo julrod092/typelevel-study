@@ -33,12 +33,21 @@ lazy val apiIntegration = (project in file("api-integration"))
   )
   .dependsOn(api % "compile->compile;test->test")
 
+lazy val taskLambda = taskKey[File]("Unpack lambda")
+
 lazy val eventHandler = (project in file("event-handler"))
-  .enablePlugins(Smithy4sCodegenPlugin, AssemblyPlugin)
+  .enablePlugins(AssemblyPlugin)
   .settings(commonSettings)
   .settings(
     name += "-event-handler",
+    Builder.lambdaBuilder("stream-processor.jar"),
     libraryDependencies ++= Dependencies.eventHandler,
-    smithy4sAwsSpecEntries ++= Seq(AWS.kinesis)
+    taskLambda := {
+      val output = target.value / "lambda-hot"
+      IO.delete(output)
+      IO.createDirectory(output)
+      IO.unzip((Compile / assembly).value, output)
+      output
+    }
   )
   .dependsOn(core)
