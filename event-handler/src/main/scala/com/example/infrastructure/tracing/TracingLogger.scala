@@ -4,7 +4,7 @@ import cats.effect.IO
 import com.amazonaws.services.lambda.runtime.Context
 import com.amazonaws.services.lambda.runtime.events.DynamodbEvent
 import com.example.events.EventResult
-import com.example.infrastructure.configuration.{Configuration, Dependencies}
+import com.example.eventhandler.configuration.{Configuration, Dependencies}
 import io.circe.Json
 import io.circe.generic.auto.*
 import io.circe.syntax.*

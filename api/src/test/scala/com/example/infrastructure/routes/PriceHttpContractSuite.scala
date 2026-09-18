@@ -220,12 +220,12 @@ object PriceHttpContractSuite extends SimpleIOSuite {
           body <- response.as[Json]
           calls <- stub.calls.get
         } yield expect(response.status == InternalServerError) and
-          expect(body.hcursor.get[String]("code").toOption.contains("500")) and
+          expect(body.hcursor.get[String]("code").toOption.contains("UPSERT_ERROR")) and
           expect(
             body.hcursor
               .get[String]("message")
               .toOption
-              .contains("Error storing order, please try again later.")
+              .contains("Error storing order, try again later.")
           ) and
           expect(calls.savedOrders.size == 1)
       }

@@ -94,10 +94,6 @@ in {
   };
 
   enterTest = ''
-    java -version
-    sbt --script-version
-    node --version
-    npm --version
-    sbt "core/test" "api/test" "apiIntegration/test"
+    sbt "core/test" "api/test" "eventHandler/test" "it/test"
   '';
 }

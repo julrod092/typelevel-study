@@ -8,7 +8,7 @@ import com.amazonaws.services.lambda.runtime.events.DynamodbEvent.DynamodbStream
 import com.amazonaws.services.lambda.runtime.{Context, RequestHandler}
 import com.example.events.EventHandlerError.{LambdaError, PublishError}
 import com.example.events.{EventHandlerError, EventResult, OrderPricedEvent}
-import com.example.infrastructure.configuration.Dependencies
+import com.example.eventhandler.configuration.Dependencies
 import com.example.infrastructure.decoders.OrderPricedDecoder
 import com.example.infrastructure.tracing.TracingLogger
 import fs2.{Chunk, Stream}

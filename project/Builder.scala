@@ -5,13 +5,13 @@ import sbtassembly.AssemblyPlugin.autoImport.assembly
 import sbtassembly.{MergeStrategy, PathList}
 
 object Versions {
-  val awsSdk = "2.54.17"
+  val awsSdk = "2.55.0"
   val cats = "2.13.0"
   val catsEffect = "3.7.1"
   val chimney = "1.11.0"
   val circe = "0.14.16"
   val ciris = "3.15.1"
-  val fs2 = "3.13.0"
+  val fs2 = "3.14.0"
   val http4s = "0.23.37"
   val log4cats = "2.8.0"
   val monocle = "3.3.0"
@@ -30,12 +30,15 @@ object Dependencies {
   val common: Seq[ModuleID] = Seq(
     "org.typelevel" %% "cats-core" % Versions.cats,
     "org.typelevel" %% "cats-effect" % Versions.catsEffect,
-    "com.disneystreaming.smithy4s" %% "smithy4s-core" % Versions.smithy4s,
+    "io.circe" %% "circe-core" % Versions.circe,
+    "io.circe" %% "circe-generic" % Versions.circe,
     "org.tpolecat" %% "natchez-core" % Versions.natchez,
-    "io.scalaland" %% "chimney" % Versions.chimney,
     "is.cir" %% "ciris" % Versions.ciris,
     "is.cir" %% "ciris-refined" % Versions.ciris,
     "is.cir" %% "ciris-http4s" % Versions.ciris,
+    "org.tpolecat" %% "natchez-log" % Versions.natchez,
+    "org.typelevel" %% "log4cats-slf4j" % Versions.log4cats,
+    "org.slf4j" % "slf4j-simple" % Versions.slf4j,
     "com.disneystreaming" %% "weaver-cats" % Versions.weaver % Test,
     "com.disneystreaming" %% "weaver-scalacheck" % Versions.weaver % Test,
     "dev.optics" %% "monocle-core" % Versions.monocle % Test,
@@ -45,8 +48,10 @@ object Dependencies {
 
   val api: Seq[ModuleID] = Seq(
     "com.disneystreaming.smithy4s" %% "smithy4s-http4s" % Versions.smithy4s,
+    "com.disneystreaming.smithy4s" %% "smithy4s-core" % Versions.smithy4s,
     "com.disneystreaming.smithy4s" %% "smithy4s-http4s-swagger" % Versions.smithy4s,
     "com.disneystreaming.smithy4s" %% "smithy4s-aws-http4s" % Versions.smithy4s,
+    "io.scalaland" %% "chimney" % Versions.chimney,
     "org.http4s" %% "http4s-ember-server" % Versions.http4s,
     "org.http4s" %% "http4s-ember-client" % Versions.http4s,
     "org.http4s" %% "http4s-circe" % Versions.http4s,
@@ -55,21 +60,20 @@ object Dependencies {
     "io.circe" %% "circe-generic" % Versions.circe
   )
 
-  val apiIntegration: Seq[ModuleID] = Seq(
-    "org.testcontainers" % "testcontainers-localstack" % Versions.testcontainers % Test
-  )
-
   val eventHandler: Seq[ModuleID] = Seq(
     "co.fs2" %% "fs2-core" % Versions.fs2,
     "com.amazonaws" % "aws-lambda-java-core" % Versions.awsLambda,
     "com.amazonaws" % "aws-lambda-java-events" % Versions.awsLambdaEvents,
     "software.amazon.awssdk" % "kinesis" % Versions.awsSdk,
     "software.amazon.awssdk" % "netty-nio-client" % Versions.awsSdk,
-    "io.circe" %% "circe-core" % Versions.circe,
-    "io.circe" %% "circe-generic" % Versions.circe,
-    "org.tpolecat" %% "natchez-log" % Versions.natchez,
-    "org.typelevel" %% "log4cats-slf4j" % Versions.log4cats,
-    "org.slf4j" % "slf4j-simple" % Versions.slf4j
+    "io.circe" %% "circe-parser" % Versions.circe % Test,
+    "org.typelevel" %% "cats-effect-testkit" % Versions.catsEffect % Test
+  )
+
+  val it: Seq[ModuleID] = Seq(
+    "org.testcontainers" % "testcontainers-localstack" % Versions.testcontainers % Test,
+    "org.testcontainers" % "testcontainers-localstack" % Versions.testcontainers % Test,
+    "io.circe" %% "circe-parser" % Versions.circe % Test
   )
 }
 

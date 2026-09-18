@@ -1,7 +1,6 @@
 FOLDER := deployment
 FILE := docker-compose.yml
 NAME := typelevel-project
-SBT := sbt
 
 .PHONY: up deploy test-integration down
 
@@ -15,8 +14,7 @@ deploy:
 	npm --prefix $(FOLDER) run seed:local
 
 test-integration:
-	sbt "test"
-	sbt "apiIntegration/test"
+	sbt "it/test"
 
 down:
 	docker compose --project-name $(NAME) -f $(FOLDER)/$(FILE) down --remove-orphans
