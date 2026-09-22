@@ -40,7 +40,8 @@ object ApplicationService extends BaseService {
   ): Program[F, X] = Kleisli { env =>
     f(env)(value)
       .attemptT
-      .leftMap[OrderPricingError](_ =>
+      .leftMap[OrderPricingError](e  =>
+        println(e.getMessage)
         OrderPricingError.internalServerError(
           InternalServerError("UPSERT_ERROR".some, "Error storing order, try again later.".some)
         )
@@ -71,7 +72,7 @@ object ApplicationService extends BaseService {
         order.transformInto[OrderRecord]
       )(_.orders.savePricedOrder)
       couponUsageUpdate = coupon.map(c => c.copy(usageCount = c.usageCount + 1))
-      _ <- coupon.traverse(c =>
+      _ <- couponUsageUpdate.traverse(c =>
         executeMandatoryDB[F, CouponRecord, CouponRecord, Coupon](c.transformInto[CouponRecord])(
           _.coupons.updateCouponUseByCoupon
         )

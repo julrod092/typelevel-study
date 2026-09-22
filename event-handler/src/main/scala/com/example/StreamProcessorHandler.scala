@@ -1,6 +1,7 @@
 package com.example
 
 import cats.data.EitherT
+import cats.effect.unsafe.implicits.global
 import cats.effect.{Async, IO}
 import cats.implicits.*
 import com.amazonaws.services.lambda.runtime.events.DynamodbEvent
@@ -8,7 +9,7 @@ import com.amazonaws.services.lambda.runtime.events.DynamodbEvent.DynamodbStream
 import com.amazonaws.services.lambda.runtime.{Context, RequestHandler}
 import com.example.events.EventHandlerError.{LambdaError, PublishError}
 import com.example.events.{EventHandlerError, EventResult, OrderPricedEvent}
-import com.example.eventhandler.configuration.Dependencies
+import com.example.infrastructure.configuration.Dependencies
 import com.example.infrastructure.decoders.OrderPricedDecoder
 import com.example.infrastructure.tracing.TracingLogger
 import fs2.{Chunk, Stream}
@@ -71,4 +72,5 @@ final class StreamProcessorHandler
 
   override def handleRequest(event: DynamodbEvent, context: Context): Unit =
     init(event, context)(event => env => run[IO](event)(using env = env))
+      .unsafeRunSync()
 }

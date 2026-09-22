@@ -46,15 +46,15 @@ object OrderPricedDecoder {
 
   private def transform(
       attributes: Map[String, AttributeValue],
-      sequenceNumber: String
+      sequenceNumber: String,
+      eventId: String
   ): Either[EventHandlerError, OrderPricedEvent] = {
     given String = sequenceNumber
     for {
-      eventId <- getString("eventId", attributes)
       orderId <- getString("orderId", attributes)
       customerId <- getString("customerId", attributes)
       subtotal <- getBigDecimal("subtotal", attributes)
-      discount <- getBigDecimal("discount", attributes)
+      discount <- getBigDecimal("discountAmount", attributes)
       total <- getBigDecimal("total", attributes)
       createdAt <- getInstant("createdAt", attributes)
     } yield OrderPricedEvent(
@@ -80,7 +80,8 @@ object OrderPricedDecoder {
           sequenceNumber.some
         )
       )
-      event <- transform(image.asScala.toMap, sequenceNumber)
+      eventId <- Option(record.getEventID).toRight(EmptyPayload("Empty event"))
+      event <- transform(image.asScala.toMap, sequenceNumber, eventId)
     } yield event
 
   def decode(record: DynamodbStreamRecord): Either[EventHandlerError, OrderPricedEvent] =

@@ -1,4 +1,4 @@
-package com.example.eventhandler.configuration
+package com.example.infrastructure.configuration
 
 import cats.effect.{Async, Resource}
 import com.example.infrastructure.handlers.{EventPublisher, KinesisPublisher}

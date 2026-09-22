@@ -3,9 +3,10 @@
 POST http://localhost:8081/orders/price
 
 {
-  "customerId": "customer-1",
+  "customerId": "customer-3",
   "items": [{
     "sku": "SKU-001",
-    "quantity": 1
-  }]
+    "quantity": 20
+  }],
+  "couponCode": "ALL15"
 }

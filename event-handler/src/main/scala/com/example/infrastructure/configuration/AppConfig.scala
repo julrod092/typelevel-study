@@ -1,4 +1,4 @@
-package com.example.eventhandler.configuration
+package com.example.infrastructure.configuration
 
 import cats.syntax.all.*
 import ciris.{ConfigDecoder, ConfigValue, Effect, env}

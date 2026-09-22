@@ -34,6 +34,7 @@ in {
     AWS_DEFAULT_REGION = lib.mkDefault "us-east-1";
     AWS_ENDPOINT_URL = lib.mkDefault "http://localhost:4566";
     AWS_ENDPOINT_URL_S3 = lib.mkDefault "http://s3.localhost.localstack.cloud:4566";
+    KINESIS_STREAM_NAME = lib.mkDefault "OrderPricedStream";
     SERVICE_HOST = lib.mkDefault "0.0.0.0";
     SERVICE_PORT = lib.mkDefault "8081";
     ORDERS_TABLE_NAME = lib.mkDefault "Orders";

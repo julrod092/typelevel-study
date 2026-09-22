@@ -3,6 +3,7 @@ package com.example.eventhandler.configuration
 import cats.effect.IO
 import cats.syntax.all.*
 import ciris.{ConfigError, ConfigKey, ConfigValue}
+import com.example.infrastructure.configuration.AppConfig
 import software.amazon.awssdk.regions.Region
 import weaver.SimpleIOSuite
 
