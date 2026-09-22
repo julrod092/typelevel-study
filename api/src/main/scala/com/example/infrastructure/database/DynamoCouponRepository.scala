@@ -87,7 +87,7 @@ final case class DynamoCouponRepository[F[_]: Async](client: DynamoDB[F], tableN
         expressionAttributeNames =
           Map(ExpressionAttributeNameVariable("#usageCount") -> AttributeName("usageCount")).some,
         expressionAttributeValues = Map(
-          ExpressionAttributeValueVariable(":usageCOunt") -> AttributeValue.n(
+          ExpressionAttributeValueVariable(":usageCount") -> AttributeValue.n(
             NumberAttributeValue(coupon.usageCount.toString)
           )
         ).some

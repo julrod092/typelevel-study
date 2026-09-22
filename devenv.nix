@@ -5,6 +5,30 @@
   ...
 }: let
   compose = "docker compose -f deployment/docker-compose.yml";
+  awsLocal = ''aws --endpoint-url "$AWS_ENDPOINT_URL" --region "$AWS_DEFAULT_REGION"'';
+  checkLocalRegion = ''
+    if [ "$AWS_DEFAULT_REGION" != "us-east-1" ]; then
+      printf '%s\n' "The local CDK stack requires AWS_DEFAULT_REGION=us-east-1." >&2
+      exit 1
+    fi
+  '';
+  deployLambda = ''
+    set -euo pipefail
+    ${checkLocalRegion}
+    ${compose} up -d --wait localstack
+    npm --prefix deployment ci
+    sbt "eventHandler/assembly"
+
+    key="stream-processor-$(date -u +%Y%m%dT%H%M%SZ)-$$.jar"
+    if ! ${awsLocal} s3api head-bucket --bucket "$LAMBDA_CODE_BUCKET" 2>/dev/null; then
+      ${awsLocal} s3 mb "s3://$LAMBDA_CODE_BUCKET"
+    fi
+    ${awsLocal} s3 cp "$LAMBDA_JAR" "s3://$LAMBDA_CODE_BUCKET/$key"
+    npm --prefix deployment run deploy:local -- \
+      --parameters "LambdaCodeBucket=$LAMBDA_CODE_BUCKET" \
+      --parameters "LambdaCodeKey=$key" \
+      --parameters "LambdaEndpointUrl=$LAMBDA_ENDPOINT_URL"
+  '';
 in {
   languages = {
     java = {
@@ -34,6 +58,11 @@ in {
     AWS_DEFAULT_REGION = lib.mkDefault "us-east-1";
     AWS_ENDPOINT_URL = lib.mkDefault "http://localhost:4566";
     AWS_ENDPOINT_URL_S3 = lib.mkDefault "http://s3.localhost.localstack.cloud:4566";
+    AWS_PAGER = lib.mkDefault "";
+    LAMBDA_CODE_BUCKET = lib.mkDefault "typelevel-lambda-artifacts";
+    LAMBDA_JAR = lib.mkDefault "event-handler/target/scala-3.8.4/stream-processor.jar";
+    LAMBDA_ENDPOINT_URL = lib.mkDefault "http://localhost.localstack.cloud:4566";
+    KINESIS_STREAM_NAME = lib.mkDefault "OrderPricedStream";
     SERVICE_HOST = lib.mkDefault "0.0.0.0";
     SERVICE_PORT = lib.mkDefault "8081";
     ORDERS_TABLE_NAME = lib.mkDefault "Orders";
@@ -60,13 +89,17 @@ in {
     deployment-install.exec = "npm --prefix deployment ci";
     deployment-typecheck.exec = "npm --prefix deployment run typecheck";
     deployment-synth.exec = "npm --prefix deployment run synth";
-    deployment-deploy-local.exec = "npm --prefix deployment run deploy:local";
+    deployment-deploy-local.exec = deployLambda;
     deployment-destroy-local.exec = "npm --prefix deployment run destroy:local";
+    lambda-build.exec = ''sbt "eventHandler/assembly"'';
   };
 
   processes = lib.optionalAttrs (!config.devenv.isTesting) {
     localstack = {
-      exec = "${compose} up localstack";
+      exec = ''
+        ${checkLocalRegion}
+        ${compose} up localstack
+      '';
       ready = {
         http.get = {
           port = 4566;
@@ -77,27 +110,31 @@ in {
         timeout = 60;
       };
     };
-    dynamo-setup = {
-      exec = ''
-           deployment-install
-           deployment-deploy-local
-           npm --prefix deployment run seed:local
-      '';
+    lambda-deploy = {
+      exec = deployLambda;
       after = [ "devenv:processes:localstack@ready" ];
       restart.on = "never";
     };
 
+    dynamo-setup = {
+      exec = ''
+        ${checkLocalRegion}
+        npm --prefix deployment run seed:local
+      '';
+      after = [ "devenv:processes:lambda-deploy@completed" ];
+      restart.on = "never";
+    };
+
     typelevel = {
-      exec = ''sbt "api/runMain com.example.Main"'';
+      exec = ''
+        ${checkLocalRegion}
+        sbt "api/runMain com.example.Main"
+      '';
       after = [ "devenv:processes:dynamo-setup@completed" ];
     };
   };
 
   enterTest = ''
-    java -version
-    sbt --script-version
-    node --version
-    npm --version
-    sbt "core/test" "api/test" "apiIntegration/test"
+    sbt "core/test" "api/test" "eventHandler/test" "it/test"
   '';
 }

@@ -4,6 +4,7 @@ import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as kinesis from "aws-cdk-lib/aws-kinesis";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources";
+import * as logs from "aws-cdk-lib/aws-logs";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
 import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
@@ -66,6 +67,63 @@ class TypeLevelLocalStack extends cdk.Stack {
             removalPolicy: cdk.RemovalPolicy.DESTROY
         });
 
+        // Bootstrapless deployments use a JAR uploaded to S3 before deploying this stack.
+        const lambdaCodeBucket = new cdk.CfnParameter(this, "LambdaCodeBucket", {
+            type: "String",
+            description: "Existing S3 bucket containing the assembled stream processor JAR"
+        });
+        const lambdaCodeKey = new cdk.CfnParameter(this, "LambdaCodeKey", {
+            type: "String",
+            description: "S3 object key of the JAR; use a new key for each build"
+        });
+        const lambdaEndpointUrl = new cdk.CfnParameter(this, "LambdaEndpointUrl", {
+            type: "String",
+            default: "http://localhost.localstack.cloud:4566",
+            description: "LocalStack endpoint reachable from the Lambda container"
+        });
+        const codeBucket = s3.Bucket.fromBucketName(
+            this, "LambdaArtifactsBucket", lambdaCodeBucket.valueAsString
+        );
+
+        const orderPricedStream = new kinesis.Stream(this, "OrderPricedStream", {
+            streamName: process.env.KINESIS_STREAM_NAME || "OrderPricedEvents",
+            shardCount: 1,
+            encryption: kinesis.StreamEncryption.UNENCRYPTED,
+            removalPolicy: cdk.RemovalPolicy.DESTROY
+        });
+
+        const processorName = "OrderStreamProcessor";
+        const processorLogs = new logs.LogGroup(this, "StreamProcessorLogs", {
+            logGroupName: `/aws/lambda/${processorName}`,
+            retention: logs.RetentionDays.ONE_WEEK,
+            removalPolicy: cdk.RemovalPolicy.DESTROY
+        });
+        const processor = new lambda.Function(this, "StreamProcessor", {
+            functionName: processorName,
+            runtime: lambda.Runtime.JAVA_21,
+            handler: "com.example.StreamProcessorHandler::handleRequest",
+            code: lambda.Code.fromBucket(codeBucket, lambdaCodeKey.valueAsString),
+            memorySize: 1024,
+            timeout: cdk.Duration.seconds(30),
+            logGroup: processorLogs,
+            environment: {
+                // AWS_DEFAULT_REGION is supplied by the Lambda runtime.
+                AWS_ENDPOINT_URL: lambdaEndpointUrl.valueAsString,
+                KINESIS_STREAM_NAME: orderPricedStream.streamName
+            }
+        });
+
+        orderPricedStream.grantWrite(processor);
+        // DynamoEventSource also grants the function permission to read the table stream.
+        processor.addEventSource(new lambdaEventSources.DynamoEventSource(ordersTable, {
+            startingPosition: lambda.StartingPosition.LATEST,
+            batchSize: 1,
+            enabled: true,
+            filters: [lambda.FilterCriteria.filter({
+                eventName: lambda.FilterRule.isEqual("INSERT")
+            })]
+        }));
+
         new cdk.CfnOutput(this, "CustomersTableName", {
             value: customersTable.tableName
         });
@@ -80,6 +138,22 @@ class TypeLevelLocalStack extends cdk.Stack {
 
         new cdk.CfnOutput(this, "OrdersStreamArn", {
             value: ordersTable.tableStreamArn!
+        });
+
+        new cdk.CfnOutput(this, "StreamProcessorFunctionName", {
+            value: processor.functionName
+        });
+
+        new cdk.CfnOutput(this, "StreamProcessorLogGroupName", {
+            value: processorLogs.logGroupName
+        });
+
+        new cdk.CfnOutput(this, "KinesisStreamName", {
+            value: orderPricedStream.streamName
+        });
+
+        new cdk.CfnOutput(this, "KinesisStreamArn", {
+            value: orderPricedStream.streamArn
         });
     }
 }
@@ -169,7 +243,7 @@ async function seedLocalData(): Promise<void> {
     client.destroy();
 
     console.log(`Seeded ${customersSeedData.length} customers and ${couponsSeedData.length} coupons`)
-};
+}
 
 
 async function main(): Promise<void> {
@@ -190,7 +264,7 @@ async function main(): Promise<void> {
 
     app.synth();
 
-};
+}
 
 
 void main().catch( (error: unknown) => {

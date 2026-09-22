@@ -1,6 +1,6 @@
 package com.example.services
 
-import cats.Monad
+import cats.{Monad, MonadThrow}
 import cats.data.{EitherT, Kleisli}
 import cats.effect.Async
 import cats.syntax.all.*
@@ -33,18 +33,17 @@ object ApplicationService extends BaseService {
       .map(transformer.transform)
   }
 
-  private def executeMandatoryDB[F[_]: Monad, A, T, X](
+  private def executeMandatoryDB[F[_]: MonadThrow, A, T, X](
       value: A
   )(f: PricingEnvironment[F] => A => F[T])(using
       transformer: Transformer[T, X]
   ): Program[F, X] = Kleisli { env =>
-    EitherT
-      .liftF(
-        f(env)(value)
-      )
-      .leftMap[OrderPricingError](_ =>
+    f(env)(value)
+      .attemptT
+      .leftMap[OrderPricingError](e  =>
+        println(e.getMessage)
         OrderPricingError.internalServerError(
-          InternalServerError("ERROR".some, "Error upserting record".some)
+          InternalServerError("UPSERT_ERROR".some, "Error storing order, try again later.".some)
         )
       )
       .map(transformer.transform)
@@ -67,13 +66,13 @@ object ApplicationService extends BaseService {
       )
     }
 
-  private def upsert[F[_]: Monad](order: Order, coupon: Option[Coupon]): Program[F, Order] =
+  private def upsert[F[_]: MonadThrow](order: Order, coupon: Option[Coupon]): Program[F, Order] =
     for {
       orderSaveResult <- executeMandatoryDB[F, OrderRecord, OrderRecord, Order](
         order.transformInto[OrderRecord]
       )(_.orders.savePricedOrder)
       couponUsageUpdate = coupon.map(c => c.copy(usageCount = c.usageCount + 1))
-      _ <- coupon.traverse(c =>
+      _ <- couponUsageUpdate.traverse(c =>
         executeMandatoryDB[F, CouponRecord, CouponRecord, Coupon](c.transformInto[CouponRecord])(
           _.coupons.updateCouponUseByCoupon
         )
